@@ -1,0 +1,1186 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>拼豆分析</title>
+<style>
+  :root {
+    --bg: #efe6d6;
+    --paper: #fffdf8;
+    --ink: #2c241c;
+    --muted: #7d6e60;
+    --line: #eadfce;
+    --accent: #d4532b;
+    --soft: #faf6ef;
+    --shadow: 0 12px 32px rgba(80, 48, 18, 0.08);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    color: var(--ink);
+    font: 15px/1.5 "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+    background-color: var(--bg);
+    background-image: radial-gradient(rgba(120, 80, 40, 0.09) 1.15px, transparent 1.25px);
+    background-size: 18px 18px;
+    color-scheme: light;
+  }
+  button, input, select { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 28px 20px 48px; }
+  header { margin-bottom: 18px; }
+  .brand { display: flex; gap: 14px; align-items: center; }
+  .beads { display: grid; grid-template-columns: 14px 14px; gap: 4px; }
+  .beads i {
+    width: 14px; height: 14px; border-radius: 50%; display: block;
+    box-shadow: inset 0 -2px 0 rgba(0,0,0,.15), inset 2px 2px 0 rgba(255,255,255,.45);
+  }
+  h1 { font-size: 28px; line-height: 1.2; margin: 0; letter-spacing: -0.02em; }
+  h2 { font-size: 18px; margin: 0; }
+  header p, .help, .hint, .note, footer { color: var(--muted); }
+  header p { margin: 4px 0 0; }
+  .layout { display: grid; grid-template-columns: 320px 1fr; gap: 16px; align-items: start; }
+  .panel {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    box-shadow: var(--shadow);
+    padding: 16px;
+  }
+  .drop {
+    border: 1.5px dashed #d9c6ae;
+    background: #fffaf3;
+    border-radius: 16px;
+    min-height: 148px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 16px;
+  }
+  .drop:hover, .drop.drag { border-color: var(--accent); background: #fff3ec; }
+  .drop strong { display: block; font-size: 16px; }
+  .drop p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+  .filled { display: flex; gap: 12px; align-items: center; text-align: left; width: 100%; }
+  .filled img {
+    width: 72px; height: 72px; object-fit: cover; border-radius: 12px;
+    background: #f3eadf; flex: none;
+  }
+  .filled b { display: block; word-break: break-all; }
+  .text-btn, .ghost, .primary {
+    border-radius: 999px;
+    padding: 8px 14px;
+    border: 1px solid var(--line);
+    background: #fff;
+  }
+  .text-btn { border: none; background: transparent; color: var(--accent); padding: 8px 0; }
+  .primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .primary:hover { background: #c44722; }
+  .seg { display: flex; gap: 6px; margin: 12px 0; }
+  .seg button { flex: 1; padding: 7px 4px; border-radius: 999px; border: 1px solid var(--line); background: #fff; font-size: 13px; }
+  .seg button.on { background: #2c241c; color: #fff; border-color: #2c241c; }
+  .field { margin: 12px 0; }
+  .field-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  .field-top label, .field > span { font-weight: 600; }
+  .val { color: var(--muted); font-size: 13px; display: flex; align-items: center; gap: 4px; }
+  .val input[type="number"] {
+    width: 64px; border: 1px solid var(--line); border-radius: 8px; padding: 4px 6px; background: #fff;
+  }
+  input[type="range"] { width: 100%; accent-color: var(--accent); margin-top: 6px; }
+  select, .pair input[type="number"] {
+    width: 100%; margin-top: 6px; border: 1px solid var(--line); background: #fff;
+    border-radius: 10px; padding: 8px 10px;
+  }
+  .check { display: flex; gap: 8px; align-items: center; margin-top: 8px; color: var(--muted); font-size: 13px; font-weight: 400; }
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .help, .hint, .note { font-size: 13px; margin: 6px 0 0; }
+  .field.muted { opacity: 0.55; }
+  details { margin-top: 8px; }
+  summary { cursor: pointer; font-weight: 600; }
+  .status { min-height: 1.4em; font-size: 13px; color: var(--accent); margin: 8px 0 0; }
+  .placeholder { color: var(--muted); padding: 12px 4px 4px; }
+  .placeholder ol { margin: 8px 0 0; padding-left: 1.2em; }
+  .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+  .stat { background: var(--soft); border-radius: 12px; padding: 10px 12px; }
+  .stat b { display: block; font-size: 20px; line-height: 1.2; font-variant-numeric: tabular-nums; }
+  .stat span { color: var(--muted); font-size: 12px; }
+  .output-bar { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; flex-wrap: wrap; }
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .stage {
+    margin-top: 12px;
+    overflow: auto;
+    max-height: 74vh;
+    border-radius: 14px;
+    border: 1px solid var(--line);
+    background: #f6f0e6;
+  }
+  canvas { display: block; cursor: pointer; }
+  .list-panel { margin-top: 16px; }
+  .list-head { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+  .sum { margin: 8px 0 12px; }
+  .legend { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 8px; }
+  .chip {
+    width: 100%; text-align: left; border-radius: 12px; border: 1px solid var(--line);
+    background: #fff; padding: 8px 10px 10px;
+    display: grid; grid-template-columns: auto auto 1fr; gap: 4px 8px; align-items: center;
+  }
+  .chip.on { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(212, 83, 43, 0.18); }
+  .chip .num { font-weight: 700; color: var(--muted); width: 1.6em; }
+  .chip .dot {
+    width: 22px; height: 22px; border-radius: 50%; background: var(--c);
+    box-shadow: inset 0 -2px 0 rgba(0,0,0,.15), inset 2px 2px 0 rgba(255,255,255,.45);
+  }
+  .chip .meta { display: flex; flex-direction: column; min-width: 0; }
+  .chip .meta b { font-weight: 650; }
+  .chip .meta small { color: var(--muted); }
+  .chip .bar { grid-column: 1 / -1; height: 6px; background: #f3eadf; border-radius: 99px; overflow: hidden; }
+  .chip .bar i { display: block; height: 100%; background: var(--c); border-radius: inherit; }
+  .tip {
+    position: fixed; z-index: 20; pointer-events: none;
+    background: #2c241c; color: #fff; border-radius: 8px;
+    padding: 6px 8px; font-size: 12px; transform: translate(12px, 16px);
+  }
+  footer { margin-top: 18px; font-size: 13px; }
+  [hidden] { display: none !important; }
+  @media (max-width: 860px) {
+    .layout { grid-template-columns: 1fr; }
+    .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    h1 { font-size: 24px; }
+  }
+  @media print {
+    body { background: white; }
+    .noprint { display: none !important; }
+    .wrap { max-width: none; padding: 0; }
+    .layout { display: block; }
+    .panel, .list-panel { box-shadow: none; }
+    .stage { max-height: none; overflow: visible; }
+  }
+</style>
+</head>
+<body><style>
+a.catalog-back{position:fixed;top:12px;left:12px;z-index:9999;display:inline-flex;align-items:center;padding:6px 12px;border-radius:999px;background:rgba(255,250,243,.94);color:#241c14;border:1px solid #e3d3be;text-decoration:none;font:14px/1.4 "PingFang SC","Hiragino Sans GB","Noto Sans SC",sans-serif;box-shadow:0 6px 16px rgba(60,40,20,.08)}
+a.catalog-back:hover{border-color:#9d2c1a;color:#9d2c1a}
+</style>
+<a class="catalog-back" href="../../index.html">返回目录</a>
+
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <span class="beads" aria-hidden="true">
+        <i style="background:#c8001c"></i>
+        <i style="background:#ffc800"></i>
+        <i style="background:#1ea050"></i>
+        <i style="background:#206cf2"></i>
+      </span>
+      <div>
+        <h1>拼豆分析</h1>
+        <p>上传图片，按格子算出该用哪些豆子、各要多少颗。</p>
+      </div>
+    </div>
+  </header>
+
+  <div class="layout">
+    <section class="panel noprint">
+      <div id="drop" class="drop" tabindex="0" role="button" aria-label="选择图片">
+        <div id="dropEmpty">
+          <strong>把图片放到这里</strong>
+          <p>点击选择，或直接粘贴截图</p>
+        </div>
+        <div id="dropFilled" class="filled" hidden>
+          <img id="thumb" alt="">
+          <div>
+            <b id="fileName"></b>
+            <p>点击换一张</p>
+          </div>
+        </div>
+      </div>
+      <input id="file" type="file" accept="image/*" hidden>
+      <button id="demoBtn" class="text-btn" type="button">没有图片？用示例试试</button>
+
+      <div class="seg" role="group" aria-label="预设">
+        <button type="button" data-preset="mini">小挂件 29</button>
+        <button type="button" data-preset="normal">常规 48</button>
+        <button type="button" data-preset="fine">精细 72</button>
+      </div>
+
+      <label class="field">
+        <span>版式</span>
+        <select id="fit">
+          <option value="aspect">按图片比例</option>
+          <option value="square">裁成正方形</option>
+          <option value="custom">自定义宽高</option>
+        </select>
+        <p id="fitHelp" class="help"></p>
+      </label>
+
+      <div class="field" id="longField">
+        <div class="field-top">
+          <label id="longLabel" for="longSide">最长边</label>
+          <span class="val"><input id="longSideNum" type="number" min="8" max="128" value="48"> 颗</span>
+        </div>
+        <input id="longSide" type="range" min="8" max="128" value="48">
+      </div>
+
+      <div class="field" id="customField" hidden>
+        <span>钉板宽高</span>
+        <div class="pair">
+          <input id="customW" type="number" min="8" max="128" value="29" aria-label="宽">
+          <input id="customH" type="number" min="8" max="128" value="29" aria-label="高">
+        </div>
+      </div>
+
+      <div class="field" id="colorField">
+        <div class="field-top">
+          <label for="colors">颜色上限</label>
+          <span class="val"><input id="colorNum" type="number" min="2" max="64" value="12"> 色</span>
+        </div>
+        <input id="colors" type="range" min="2" max="64" value="12">
+        <label class="check"><input id="unlimited" type="checkbox"> 不合并，用上所有接近的颜色</label>
+        <p class="help">上限越低，要买的颜色越少，细小色块会并进相近的豆子。</p>
+      </div>
+
+      <label class="field">
+        <span>豆子规格</span>
+        <select id="beadSize">
+          <option value="5">5mm 中豆</option>
+          <option value="2.6">2.6mm 小豆</option>
+        </select>
+      </label>
+
+      <label class="field">
+        <span>背景</span>
+        <select id="bgMode">
+          <option value="white">去掉近白</option>
+          <option value="corner">按四角去底</option>
+          <option value="keep">保留背景</option>
+        </select>
+        <p id="bgHelp" class="help"></p>
+      </label>
+
+      <div class="field" id="strengthField">
+        <div class="field-top">
+          <label id="strengthLabel" for="strength">去白强度</label>
+          <output id="strengthVal" for="strength">40</output>
+        </div>
+        <input id="strength" type="range" min="0" max="100" value="40">
+      </div>
+
+      <label class="check"><input id="showIndex" type="checkbox" checked> 在豆子上标色号</label>
+
+      <details>
+        <summary>画面调整</summary>
+        <p class="help">照片发灰、偏暗时再动。插画一般不用改。</p>
+        <div class="field">
+          <div class="field-top"><label for="bri">亮度</label><output id="briVal" for="bri">0</output></div>
+          <input id="bri" type="range" min="-40" max="40" value="0">
+        </div>
+        <div class="field">
+          <div class="field-top"><label for="con">对比</label><output id="conVal" for="con">100</output></div>
+          <input id="con" type="range" min="70" max="150" value="100">
+        </div>
+        <div class="field">
+          <div class="field-top"><label for="sat">饱和</label><output id="satVal" for="sat">100</output></div>
+          <input id="sat" type="range" min="0" max="180" value="100">
+        </div>
+        <button id="resetAdj" class="ghost" type="button">恢复画面</button>
+      </details>
+
+      <p id="status" class="status" role="status"></p>
+    </section>
+
+    <section class="panel" id="resultPanel">
+      <div id="placeholder" class="placeholder">
+        <p>上传之后，这里会变成钉板图纸。</p>
+        <ol>
+          <li>每一格是一颗豆子</li>
+          <li>用料按颗数从多到少排列</li>
+          <li>色块用来对照手里的实物，不同品牌的色号对不上也没关系</li>
+        </ol>
+      </div>
+      <div id="output" hidden>
+        <div class="output-bar">
+          <div class="stats">
+            <div class="stat"><b id="statSize">—</b><span>宽 × 高（颗）</span></div>
+            <div class="stat"><b id="statBeads">—</b><span>需要颗数</span></div>
+            <div class="stat"><b id="statColors">—</b><span>颜色种数</span></div>
+            <div class="stat"><b id="statCm">—</b><span>成品大约</span></div>
+          </div>
+          <div class="actions noprint">
+            <button id="copyBtn" class="ghost" type="button">复制清单</button>
+            <button id="saveBtn" class="primary" type="button">下载图纸</button>
+            <button id="printBtn" class="ghost" type="button">打印</button>
+          </div>
+        </div>
+        <p id="statNote" class="note"></p>
+        <div class="stage"><canvas id="board"></canvas></div>
+        <p id="highlightNote" class="hint" hidden></p>
+        <p class="hint">点一颗豆子或下面的颜色，可以只留下这一色。行列从 1 数起，每 10 格一条深线。</p>
+      </div>
+    </section>
+  </div>
+
+  <section class="panel list-panel" id="listPanel" hidden>
+    <div class="list-head">
+      <h2>用料</h2>
+    </div>
+    <p id="sumLine" class="sum"></p>
+    <div id="legend" class="legend"></div>
+    <p id="listHint" class="hint" hidden></p>
+  </section>
+
+  <footer class="noprint">
+    图片只在这台电脑上处理，不会上传。色板是常见拼豆的近似色，请拿屏幕色块去对盒子里的豆子。摆好后盖上熨烫纸再熨，熨斗不要直接碰到豆子。购买时每色可以多备几颗。
+  </footer>
+</div>
+<div id="tip" class="tip" hidden></div>
+
+<script>
+(function () {
+  const RAW = [
+    ["白", "#F7F7F5"], ["米白", "#F4E7CC"], ["奶油", "#F8EEB0"], ["浅灰", "#D2D2CC"],
+    ["灰", "#7E7E7A"], ["深灰", "#4A4A46"], ["黑", "#141414"], ["沙色", "#D6B06A"],
+    ["卡其", "#A89448"], ["驼", "#C08858"], ["浅棕", "#A66E38"], ["棕", "#744422"],
+    ["深棕", "#5C3218"], ["咖啡", "#2C180C"], ["浅肤", "#FFD0C0"], ["肤色", "#E09A62"],
+    ["深肤", "#C06028"], ["古铜", "#7C3814"], ["浅黄", "#FFE56A"], ["黄", "#FFC800"],
+    ["金", "#E09A00"], ["琥珀", "#C88010"], ["浅橙", "#FFB45A"], ["橙", "#FF7800"],
+    ["深橙", "#DC4A00"], ["砖红", "#B0300C"], ["珊瑚", "#FF6A52"], ["红", "#C8001C"],
+    ["深红", "#860E1C"], ["酒红", "#5C101C"], ["浅粉", "#FFD0DC"], ["粉", "#FF96B4"],
+    ["桃红", "#FF487E"], ["玫红", "#C01058"], ["豆沙", "#A86870"], ["淡紫", "#E4D2F8"],
+    ["薰衣草", "#B490E2"], ["紫", "#7438E4"], ["深紫", "#481470"], ["梅子", "#6C2444"],
+    ["冰蓝", "#C6F0FA"], ["雾蓝", "#90C8F6"], ["天蓝", "#30B4F0"], ["蓝", "#206CF2"],
+    ["钴蓝", "#183EC0"], ["深蓝", "#182E74"], ["海军", "#0E1838"], ["牛仔", "#2E5C88"],
+    ["青", "#10A8C4"], ["湖蓝", "#086078"], ["薄荷", "#B4F0D2"], ["芽绿", "#90DC68"],
+    ["黄绿", "#C6D428"], ["草绿", "#548E18"], ["绿", "#1EA050"], ["翠绿", "#0A7438"],
+    ["深绿", "#0A5428"], ["森绿", "#0C2818"], ["橄榄", "#546418"], ["军绿", "#303814"],
+    ["青绿", "#0A6058"], ["浅绿", "#64B888"], ["焦糖", "#D05818"], ["暖灰", "#C2B0A2"]
+  ];
+
+  function srgbToLinear(c) {
+    c /= 255;
+    return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  }
+  function rgbToLab(r, g, b) {
+    const R = srgbToLinear(r), G = srgbToLinear(g), B = srgbToLinear(b);
+    let X = R * 0.4124564 + G * 0.3575761 + B * 0.1804375;
+    let Y = R * 0.2126729 + G * 0.7151522 + B * 0.0721750;
+    let Z = R * 0.0193339 + G * 0.1191920 + B * 0.9503041;
+    X /= 0.95047;
+    Z /= 1.08883;
+    const f = (t) => (t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116);
+    const fx = f(X), fy = f(Y), fz = f(Z);
+    return [116 * fy - 16, 500 * (fx - fy), 200 * (fy - fz)];
+  }
+  function hexToRgb(hex) {
+    const n = parseInt(hex.slice(1), 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  }
+  function relLum(r, g, b) {
+    const lin = (c) => {
+      c /= 255;
+      return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+    };
+    return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+  }
+  function dist2(a, b) {
+    const d0 = a[0] - b[0], d1 = a[1] - b[1], d2 = a[2] - b[2];
+    return d0 * d0 + d1 * d1 + d2 * d2;
+  }
+  function clamp255(v) { return v < 0 ? 0 : v > 255 ? 255 : v; }
+  function clampInt(v, min, max, fallback) {
+    const n = Math.round(Number(v));
+    if (!Number.isFinite(n)) return fallback;
+    return Math.min(max, Math.max(min, n));
+  }
+
+  const PALETTE = RAW.map(([name, hex]) => {
+    const rgb = hexToRgb(hex);
+    return { name, hex, rgb, lab: rgbToLab(rgb[0], rgb[1], rgb[2]), lum: relLum(rgb[0], rgb[1], rgb[2]) };
+  });
+
+  function closestId(lab) {
+    let best = 0, bestD = Infinity;
+    for (let i = 0; i < PALETTE.length; i++) {
+      const d = dist2(lab, PALETTE[i].lab);
+      if (d < bestD) { bestD = d; best = i; }
+    }
+    return best;
+  }
+
+  const $ = (id) => document.getElementById(id);
+  const drop = $("drop");
+  const fileInput = $("file");
+  const fitSel = $("fit");
+  const longSide = $("longSide");
+  const longSideNum = $("longSideNum");
+  const colors = $("colors");
+  const colorNum = $("colorNum");
+  const unlimited = $("unlimited");
+  const board = $("board");
+  const tip = $("tip");
+  const sample = document.createElement("canvas");
+  const sctx = sample.getContext("2d", { willReadFrequently: true });
+
+  let source = null;
+  let thumbUrl = null;
+  let current = null;
+  let timer = 0;
+  let scrolledOnce = false;
+
+  const PRESETS = {
+    mini: { fit: "square", long: 29, colors: 8 },
+    normal: { fit: "aspect", long: 48, colors: 12 },
+    fine: { fit: "aspect", long: 72, colors: 18 }
+  };
+
+  function schedule() {
+    clearTimeout(timer);
+    timer = setTimeout(() => { if (source) analyze(); }, 40);
+  }
+
+  function syncPair(range, num) {
+    range.addEventListener("input", () => { num.value = range.value; schedule(); });
+    num.addEventListener("input", () => { range.value = num.value; schedule(); });
+    num.addEventListener("change", () => {
+      const n = clampInt(num.value, +range.min, +range.max, +range.value);
+      num.value = n;
+      range.value = n;
+      if (source) analyze();
+    });
+  }
+
+  function syncFitUI() {
+    const fit = fitSel.value;
+    $("longField").hidden = fit === "custom";
+    $("customField").hidden = fit !== "custom";
+    $("longLabel").textContent = fit === "square" ? "边长" : "最长边";
+    const help = {
+      aspect: "按原图比例出图，尽量不裁切。",
+      square: "从中间裁成正方形，适合 29×29 这类方板。",
+      custom: "按填写的宽高铺满，多出来的画面会从四周裁掉。"
+    };
+    $("fitHelp").textContent = help[fit];
+    syncPresetHighlight();
+  }
+
+  function syncBgUI() {
+    const mode = $("bgMode").value;
+    $("strengthField").hidden = mode === "keep";
+    $("strengthLabel").textContent = mode === "corner" ? "去底强度" : "去白强度";
+    const help = {
+      white: "近白的格子留空，适合白底插画。主体本身是白色时会一起被去掉，可改用「按四角去底」。",
+      corner: "从四个角往里，把连成一片的背景留空。天空和地面颜色不同时，两块都会去掉。主体如果贴住角落，也会被去掉。",
+      keep: "背景也用豆子拼上。只有透明的地方留空。"
+    };
+    $("bgHelp").textContent = help[mode];
+  }
+
+  function syncColorUI() {
+    const off = unlimited.checked;
+    colors.disabled = off;
+    colorNum.disabled = off;
+    $("colorField").classList.toggle("muted", off);
+    syncPresetHighlight();
+  }
+
+  function syncPresetHighlight() {
+    const fit = fitSel.value;
+    const long = clampInt(longSide.value, 8, 128, 48);
+    const color = clampInt(colors.value, 2, 64, 12);
+    let on = null;
+    if (!unlimited.checked) {
+      for (const key of Object.keys(PRESETS)) {
+        const p = PRESETS[key];
+        if (p.fit === fit && p.long === long && p.colors === color) on = key;
+      }
+    }
+    document.querySelectorAll("[data-preset]").forEach((btn) => {
+      btn.classList.toggle("on", btn.dataset.preset === on);
+    });
+  }
+
+  function syncOutputs() {
+    $("strengthVal").textContent = $("strength").value;
+    $("briVal").textContent = $("bri").value;
+    $("conVal").textContent = $("con").value;
+    $("satVal").textContent = $("sat").value;
+  }
+
+  function gridSize(iw, ih) {
+    const fit = fitSel.value;
+    if (fit === "custom") {
+      return {
+        gw: clampInt($("customW").value, 8, 128, 29),
+        gh: clampInt($("customH").value, 8, 128, 29),
+        cover: true
+      };
+    }
+    const n = clampInt(longSide.value, 8, 128, 48);
+    if (fit === "square") return { gw: n, gh: n, cover: true };
+    if (iw >= ih) return { gw: n, gh: Math.max(1, Math.round(n * ih / iw)), cover: false };
+    return { gw: Math.max(1, Math.round(n * iw / ih)), gh: n, cover: false };
+  }
+
+  function paintSource(sw, sh, cover) {
+    const iw = source.naturalWidth || source.width;
+    const ih = source.naturalHeight || source.height;
+    sctx.setTransform(1, 0, 0, 1, 0, 0);
+    sctx.clearRect(0, 0, sw, sh);
+    if (cover) {
+      const s = Math.max(sw / iw, sh / ih);
+      const dw = iw * s, dh = ih * s;
+      sctx.imageSmoothingEnabled = s < 0.99;
+      sctx.imageSmoothingQuality = "high";
+      sctx.drawImage(source, (sw - dw) / 2, (sh - dh) / 2, dw, dh);
+    } else {
+      const s = Math.min(sw / iw, sh / ih);
+      sctx.imageSmoothingEnabled = s < 0.99;
+      sctx.imageSmoothingQuality = "high";
+      sctx.drawImage(source, 0, 0, sw, sh);
+    }
+  }
+
+  function adjust(r, g, b) {
+    const brightness = +$("bri").value;
+    const contrast = +$("con").value / 100;
+    const saturation = +$("sat").value / 100;
+    r = (r - 128) * contrast + 128 + brightness;
+    g = (g - 128) * contrast + 128 + brightness;
+    b = (b - 128) * contrast + 128 + brightness;
+    const avg = (r + g + b) / 3;
+    r = avg + (r - avg) * saturation;
+    g = avg + (g - avg) * saturation;
+    b = avg + (b - avg) * saturation;
+    return [clamp255(r), clamp255(g), clamp255(b)];
+  }
+
+  function isNearWhite(lab, strength) {
+    const Lcut = 98 - strength * 0.30;
+    const cCut = 4 + strength * 0.20;
+    return lab[0] >= Lcut && Math.hypot(lab[1], lab[2]) <= cCut;
+  }
+
+  function clearCornerBackground(assign, labs, gw, gh, strength) {
+    const step = 4 + strength * 0.18;
+    const drift = 12 + strength * 0.40;
+    const step2 = step * step;
+    const drift2 = drift * drift;
+    const seeds = [0, gw - 1, (gh - 1) * gw, gw * gh - 1];
+    const seen = new Uint8Array(assign.length);
+    const queue = [];
+    for (let s = 0; s < seeds.length; s++) {
+      const i = seeds[s];
+      if (assign[i] === -2 && labs[i]) {
+        assign[i] = -1;
+        seen[i] = 1;
+        queue.push([i, labs[i]]);
+      }
+    }
+    for (let head = 0; head < queue.length; head++) {
+      const i = queue[head][0];
+      const seed = queue[head][1];
+      const x = i % gw;
+      const y = (i - x) / gw;
+      const next = [];
+      if (x > 0) next.push(i - 1);
+      if (x + 1 < gw) next.push(i + 1);
+      if (y > 0) next.push(i - gw);
+      if (y + 1 < gh) next.push(i + gw);
+      for (let k = 0; k < next.length; k++) {
+        const n = next[k];
+        if (seen[n] || assign[n] !== -2 || !labs[n]) continue;
+        if (dist2(labs[n], labs[i]) <= step2 && dist2(labs[n], seed) <= drift2) {
+          seen[n] = 1;
+          assign[n] = -1;
+          queue.push([n, seed]);
+        }
+      }
+    }
+  }
+
+  function mergeToLimit(assign, maxColors) {
+    const counts = new Map();
+    for (let i = 0; i < assign.length; i++) {
+      const id = assign[i];
+      if (id >= 0) counts.set(id, (counts.get(id) || 0) + 1);
+    }
+    const before = counts.size;
+    while (counts.size > maxColors) {
+      const ids = [...counts.keys()];
+      let bestD = Infinity, a = ids[0], b = ids[1];
+      for (let i = 0; i < ids.length; i++) {
+        for (let j = i + 1; j < ids.length; j++) {
+          const d = dist2(PALETTE[ids[i]].lab, PALETTE[ids[j]].lab);
+          if (d < bestD) { bestD = d; a = ids[i]; b = ids[j]; }
+        }
+      }
+      if ((counts.get(a) || 0) < (counts.get(b) || 0)) { const t = a; a = b; b = t; }
+      for (let i = 0; i < assign.length; i++) if (assign[i] === b) assign[i] = a;
+      counts.set(a, counts.get(a) + counts.get(b));
+      counts.delete(b);
+    }
+    return before;
+  }
+
+  function analyze() {
+    if (!source) return;
+    syncOutputs();
+    const iw = source.naturalWidth || source.width;
+    const ih = source.naturalHeight || source.height;
+    if (!iw || !ih) {
+      $("status").textContent = "这张图没有有效尺寸。";
+      return;
+    }
+    const { gw, gh, cover } = gridSize(iw, ih);
+    let scale = 4;
+    scale = Math.min(scale, Math.max(1, Math.floor(iw / gw) || 1));
+    scale = Math.min(scale, Math.max(1, Math.floor(ih / gh) || 1));
+    const sw = gw * scale, sh = gh * scale;
+    sample.width = sw;
+    sample.height = sh;
+    paintSource(sw, sh, cover);
+    const data = sctx.getImageData(0, 0, sw, sh).data;
+    const count = gw * gh;
+    const labs = new Array(count);
+    const assign = new Int16Array(count);
+    assign.fill(-1);
+    const mode = $("bgMode").value;
+    const strength = +$("strength").value;
+
+    for (let y = 0; y < gh; y++) {
+      for (let x = 0; x < gw; x++) {
+        let r = 0, g = 0, b = 0, opaque = 0;
+        const x0 = x * scale, y0 = y * scale;
+        for (let dy = 0; dy < scale; dy++) {
+          let p = ((y0 + dy) * sw + x0) * 4;
+          for (let dx = 0; dx < scale; dx++) {
+            if (data[p + 3] >= 128) {
+              r += data[p]; g += data[p + 1]; b += data[p + 2];
+              opaque++;
+            }
+            p += 4;
+          }
+        }
+        const i = y * gw + x;
+        if (opaque < scale * scale * 0.5) continue;
+        const rgb = adjust(r / opaque, g / opaque, b / opaque);
+        labs[i] = rgbToLab(rgb[0], rgb[1], rgb[2]);
+        assign[i] = -2;
+      }
+    }
+
+    if (mode === "white") {
+      for (let i = 0; i < count; i++) {
+        if (assign[i] === -2 && isNearWhite(labs[i], strength)) assign[i] = -1;
+      }
+    } else if (mode === "corner") {
+      clearCornerBackground(assign, labs, gw, gh, strength);
+    }
+
+    for (let i = 0; i < count; i++) {
+      if (assign[i] === -2) assign[i] = closestId(labs[i]);
+    }
+
+    const maxColors = unlimited.checked ? Infinity : clampInt(colors.value, 2, 64, 12);
+    const before = mergeToLimit(assign, maxColors);
+
+    const counts = new Map();
+    let beadCount = 0, emptyCount = 0;
+    for (let i = 0; i < count; i++) {
+      if (assign[i] < 0) emptyCount++;
+      else {
+        beadCount++;
+        counts.set(assign[i], (counts.get(assign[i]) || 0) + 1);
+      }
+    }
+    const ranked = [...counts.entries()].sort((a, b) =>
+      b[1] - a[1] || PALETTE[a[0]].name.localeCompare(PALETTE[b[0]].name, "zh")
+    );
+    const numOf = new Map(ranked.map(([id], index) => [id, index + 1]));
+
+    current = { gw, gh, assign, ranked, numOf, beadCount, emptyCount, before, highlight: -1 };
+    $("placeholder").hidden = true;
+    $("output").hidden = false;
+    $("listPanel").hidden = false;
+    renderStats();
+    renderPattern();
+    renderLegend();
+    $("status").textContent = beadCount
+      ? "已生成 " + gw + "×" + gh + " 的图纸。"
+      : "没有可拼的区域。把强度调低，或改成保留背景。";
+    board.setAttribute("aria-label", "拼豆图纸，" + gw + " 列 " + gh + " 行，共 " + beadCount + " 颗");
+    if (!scrolledOnce && window.matchMedia("(max-width: 860px)").matches) {
+      $("output").scrollIntoView({ behavior: "smooth", block: "start" });
+      scrolledOnce = true;
+    }
+  }
+
+  function pitchCm() {
+    return $("beadSize").value === "2.6" ? 0.26 : 0.5;
+  }
+
+  function renderStats() {
+    const pitch = pitchCm();
+    $("statSize").textContent = current.gw + " × " + current.gh;
+    $("statBeads").textContent = String(current.beadCount);
+    $("statColors").textContent = String(current.ranked.length);
+    $("statCm").textContent = (current.gw * pitch).toFixed(1) + " × " + (current.gh * pitch).toFixed(1) + " cm";
+    const sizeNote = $("beadSize").value === "5"
+      ? "5mm 中豆。29×29 钉板大约横 " + Math.ceil(current.gw / 29) + " 块、纵 " + Math.ceil(current.gh / 29) + " 块。"
+      : "2.6mm 小豆。同样的颗数，成品边长大约是 5mm 中豆的一半。";
+    const mergeNote = current.before > current.ranked.length
+      ? " 相近色已收成 " + current.ranked.length + " 色（细分大约 " + current.before + " 色）。"
+      : "";
+    $("statNote").textContent = sizeNote + mergeNote + " 空位 " + current.emptyCount + " 格。";
+  }
+
+  function drawHole(ctx, x, y, cell) {
+    ctx.beginPath();
+    ctx.arc(x + cell / 2, y + cell / 2, Math.max(1.2, cell * 0.12), 0, Math.PI * 2);
+    ctx.fillStyle = "#e3d3bc";
+    ctx.fill();
+  }
+
+  function drawBead(ctx, x, y, cell, hex) {
+    const r = cell * 0.38;
+    const cx = x + cell / 2, cy = y + cell / 2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fillStyle = hex;
+    ctx.fill();
+  }
+
+  function strokeGrid(ctx, padL, padT, cell, gw, gh, step, style, width) {
+    ctx.beginPath();
+    for (let x = 0; x <= gw; x += step) {
+      const X = padL + x * cell + 0.5;
+      ctx.moveTo(X, padT + 0.5);
+      ctx.lineTo(X, padT + gh * cell + 0.5);
+    }
+    if (gw % step !== 0) {
+      const X = padL + gw * cell + 0.5;
+      ctx.moveTo(X, padT + 0.5);
+      ctx.lineTo(X, padT + gh * cell + 0.5);
+    }
+    for (let y = 0; y <= gh; y += step) {
+      const Y = padT + y * cell + 0.5;
+      ctx.moveTo(padL + 0.5, Y);
+      ctx.lineTo(padL + gw * cell + 0.5, Y);
+    }
+    if (gh % step !== 0) {
+      const Y = padT + gh * cell + 0.5;
+      ctx.moveTo(padL + 0.5, Y);
+      ctx.lineTo(padL + gw * cell + 0.5, Y);
+    }
+    ctx.strokeStyle = style;
+    ctx.lineWidth = width;
+    ctx.stroke();
+  }
+
+  function drawPattern(ctx, opt) {
+    const { padL, padT, cell, showIndex, highlight } = opt;
+    const { gw, gh, assign, numOf } = current;
+    for (let y = 0; y < gh; y++) {
+      for (let x = 0; x < gw; x++) {
+        const id = assign[y * gw + x];
+        const px = padL + x * cell;
+        const py = padT + y * cell;
+        const faded = highlight >= 0 && id !== highlight;
+        if (id < 0 || faded) drawHole(ctx, px, py, cell);
+        else {
+          const bead = PALETTE[id];
+          drawBead(ctx, px, py, cell, bead.hex);
+          if (showIndex && cell >= 11) {
+            const num = String(numOf.get(id));
+            ctx.fillStyle = bead.lum > 0.58 ? "rgba(28,20,12,0.88)" : "rgba(255,255,255,0.94)";
+            ctx.font = "600 " + (num.length > 1 ? Math.floor(cell * 0.34) : Math.floor(cell * 0.42)) + "px PingFang SC, sans-serif";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(num, px + cell / 2, py + cell / 2 + 0.5);
+          }
+        }
+      }
+    }
+    strokeGrid(ctx, padL, padT, cell, gw, gh, 1, "rgba(90,60,30,0.13)", 1);
+    strokeGrid(ctx, padL, padT, cell, gw, gh, 10, "rgba(70,45,20,0.45)", 1.5);
+    ctx.fillStyle = "#8a7764";
+    ctx.font = (cell >= 18 ? 11 : 9) + "px PingFang SC, sans-serif";
+    ctx.textBaseline = "middle";
+    const step = cell >= 16 ? 1 : 5;
+    ctx.textAlign = "center";
+    for (let x = 0; x < gw; x++) {
+      if (x === 0 || x === gw - 1 || (x + 1) % step === 0) {
+        ctx.fillText(String(x + 1), padL + x * cell + cell / 2, padT - 11);
+      }
+    }
+    ctx.textAlign = "right";
+    for (let y = 0; y < gh; y++) {
+      if (y === 0 || y === gh - 1 || (y + 1) % step === 0) {
+        ctx.fillText(String(y + 1), padL - 6, padT + y * cell + cell / 2);
+      }
+    }
+  }
+
+  function renderPattern() {
+    const gw = current.gw, gh = current.gh;
+    const stage = board.parentElement;
+    const maxW = Math.max(280, (stage.clientWidth || 640) - 2);
+    const padL = 36, padR = 14, padT = 26, padB = 14;
+    let cell = 18;
+    if (padL + padR + gw * cell > maxW) cell = Math.max(8, Math.floor((maxW - padL - padR) / gw));
+    const cssW = padL + padR + gw * cell;
+    const cssH = padT + padB + gh * cell;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    board.width = Math.round(cssW * dpr);
+    board.height = Math.round(cssH * dpr);
+    board.style.width = cssW + "px";
+    board.style.height = cssH + "px";
+    const ctx = board.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.fillStyle = "#f6f0e6";
+    ctx.fillRect(0, 0, cssW, cssH);
+    current.view = { padL, padT, cell };
+    drawPattern(ctx, {
+      padL, padT, cell,
+      showIndex: $("showIndex").checked,
+      highlight: current.highlight
+    });
+  }
+
+  function formatPct(count, total) {
+    const p = count / total * 100;
+    return (p >= 10 ? Math.round(p) : Math.round(p * 10) / 10) + "%";
+  }
+
+  function renderLegend() {
+    const legend = $("legend");
+    legend.replaceChildren();
+    const total = current.beadCount;
+    $("sumLine").textContent = total
+      ? current.ranked.length + " 色，共 " + total + " 颗。购买时每色可以多备几颗。"
+      : "这一版没有要拼的豆子。";
+    $("listHint").hidden = total > 0;
+    if (!total) $("listHint").textContent = "把去底强度调低，或把背景改成「保留背景」。";
+    for (const [id, count] of current.ranked) {
+      const bead = PALETTE[id];
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "chip" + (current.highlight === id ? " on" : "");
+      btn.style.setProperty("--c", bead.hex);
+      btn.setAttribute("aria-pressed", current.highlight === id ? "true" : "false");
+      const num = document.createElement("span");
+      num.className = "num";
+      num.textContent = String(current.numOf.get(id));
+      const dot = document.createElement("span");
+      dot.className = "dot";
+      const meta = document.createElement("span");
+      meta.className = "meta";
+      const name = document.createElement("b");
+      name.textContent = bead.name;
+      const small = document.createElement("small");
+      small.textContent = count + " 颗 · " + formatPct(count, total);
+      meta.append(name, small);
+      const bar = document.createElement("span");
+      bar.className = "bar";
+      const fill = document.createElement("i");
+      fill.style.width = (count / total * 100) + "%";
+      bar.append(fill);
+      btn.append(num, dot, meta, bar);
+      btn.addEventListener("click", () => toggleHighlight(id));
+      legend.append(btn);
+    }
+    const hi = current.highlight;
+    $("highlightNote").hidden = hi < 0;
+    if (hi >= 0) $("highlightNote").textContent = "正在只看「" + PALETTE[hi].name + "」，再点一次取消。";
+  }
+
+  function toggleHighlight(id) {
+    if (!current) return;
+    current.highlight = current.highlight === id ? -1 : id;
+    renderPattern();
+    renderLegend();
+  }
+
+  function hitTest(event) {
+    if (!current || !current.view) return null;
+    const rect = board.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+    const { padL, padT, cell } = current.view;
+    const cx = Math.floor((x - padL) / cell);
+    const cy = Math.floor((y - padT) / cell);
+    if (cx < 0 || cy < 0 || cx >= current.gw || cy >= current.gh) return null;
+    return { x: cx, y: cy, id: current.assign[cy * current.gw + cx] };
+  }
+
+  function listText() {
+    const pitch = pitchCm();
+    const lines = [
+      "拼豆用料清单",
+      "尺寸：" + current.gw + " × " + current.gh + " 颗",
+      "规格：" + ($("beadSize").value === "5" ? "5mm 中豆" : "2.6mm 小豆"),
+      "成品大约：" + (current.gw * pitch).toFixed(1) + " × " + (current.gh * pitch).toFixed(1) + " 厘米",
+      "共 " + current.beadCount + " 颗，" + current.ranked.length + " 色，空位 " + current.emptyCount + " 格",
+      ""
+    ];
+    for (const [id, count] of current.ranked) {
+      lines.push(current.numOf.get(id) + ". " + PALETTE[id].name + "  " + count + " 颗");
+    }
+    lines.push("", "色块是近似色，请对照手中的豆子。不同品牌色号不通用。");
+    return lines.join("\n");
+  }
+
+  function buildSheet() {
+    const cell = 20;
+    const padL = 40, padT = 86, padR = 18, padB = 16;
+    const gw = current.gw, gh = current.gh;
+    const gridW = gw * cell;
+    const width = Math.max(padL + gridW + padR, 560);
+    const cols = width >= 760 ? 4 : 3;
+    const legendRows = Math.ceil(current.ranked.length / cols) || 1;
+    const legendH = legendRows * 26 + 28;
+    const height = padT + gh * cell + padB + legendH;
+    const canvas = document.createElement("canvas");
+    const dpr = 2;
+    canvas.width = Math.round(width * dpr);
+    canvas.height = Math.round(height * dpr);
+    const ctx = canvas.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.fillStyle = "#fffdf8";
+    ctx.fillRect(0, 0, width, height);
+    ctx.fillStyle = "#2c241c";
+    ctx.font = "600 22px PingFang SC, sans-serif";
+    ctx.textBaseline = "alphabetic";
+    ctx.fillText("拼豆图纸", 20, 32);
+    ctx.fillStyle = "#7d6e60";
+    ctx.font = "14px PingFang SC, sans-serif";
+    const pitch = pitchCm();
+    ctx.fillText(
+      current.gw + "×" + current.gh + " 颗 · " + current.beadCount + " 颗 · " + current.ranked.length + " 色 · 约 " +
+      (gw * pitch).toFixed(1) + "×" + (gh * pitch).toFixed(1) + " cm",
+      20, 54
+    );
+    ctx.fillStyle = "#f6f0e6";
+    ctx.fillRect(padL, padT, gridW, gh * cell);
+    drawPattern(ctx, { padL, padT, cell, showIndex: true, highlight: -1 });
+    const legendTop = padT + gh * cell + 22;
+    ctx.fillStyle = "#2c241c";
+    ctx.font = "600 14px PingFang SC, sans-serif";
+    ctx.fillText("用料（数字与图纸对应）", 20, legendTop);
+    const colW = (width - 40) / cols;
+    current.ranked.forEach(([id, count], index) => {
+      const col = index % cols;
+      const row = Math.floor(index / cols);
+      const px = 20 + col * colW;
+      const py = legendTop + 16 + row * 26;
+      ctx.beginPath();
+      ctx.arc(px + 8, py + 8, 7, 0, Math.PI * 2);
+      ctx.fillStyle = PALETTE[id].hex;
+      ctx.fill();
+      ctx.fillStyle = "#2c241c";
+      ctx.font = "13px PingFang SC, sans-serif";
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      ctx.fillText(current.numOf.get(id) + "  " + PALETTE[id].name + "  " + count + " 颗", px + 20, py + 8);
+    });
+    return canvas;
+  }
+
+  function setSource(img, name) {
+    source = img;
+    $("fileName").textContent = name || "图片";
+    $("dropEmpty").hidden = true;
+    $("dropFilled").hidden = false;
+    analyze();
+  }
+
+  function loadFile(file) {
+    if (!file) return;
+    if (file.type && !file.type.startsWith("image/")) {
+      $("status").textContent = "请上传图片文件。";
+      return;
+    }
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      if (thumbUrl) URL.revokeObjectURL(thumbUrl);
+      thumbUrl = url;
+      $("thumb").src = url;
+      setSource(img, file.name);
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      $("status").textContent = "读不了这张图，请换成 JPG、PNG 或 WEBP。";
+    };
+    img.src = url;
+  }
+
+  function loadDemo() {
+    const c = document.createElement("canvas");
+    c.width = 40;
+    c.height = 40;
+    const ctx = c.getContext("2d");
+    ctx.fillStyle = "#30B4F0";
+    ctx.fillRect(0, 0, 40, 40);
+    ctx.fillStyle = "#1EA050";
+    ctx.fillRect(0, 26, 40, 14);
+    ctx.fillStyle = "#FFC800";
+    ctx.fillRect(29, 5, 5, 7);
+    ctx.fillRect(28, 6, 7, 5);
+    ctx.fillStyle = "#5C3218";
+    ctx.fillRect(6, 16, 16, 4);
+    ctx.fillStyle = "#C8001C";
+    ctx.fillRect(8, 20, 12, 8);
+    ctx.fillStyle = "#141414";
+    ctx.fillRect(12, 23, 4, 5);
+    ctx.fillStyle = "#F7F7F5";
+    ctx.fillRect(9, 21, 3, 3);
+    fitSel.value = "aspect";
+    longSide.value = 40;
+    longSideNum.value = 40;
+    colors.value = 12;
+    colorNum.value = 12;
+    unlimited.checked = false;
+    $("bgMode").value = "keep";
+    $("strength").value = 40;
+    $("bri").value = 0;
+    $("con").value = 100;
+    $("sat").value = 100;
+    $("beadSize").value = "5";
+    $("showIndex").checked = true;
+    syncFitUI();
+    syncBgUI();
+    syncColorUI();
+    syncOutputs();
+    $("thumb").src = c.toDataURL("image/png");
+    setSource(c, "示例图");
+    $("status").textContent = "已载入示例，并改成了适合这张图的设置。";
+  }
+
+  drop.addEventListener("click", () => fileInput.click());
+  drop.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); fileInput.click(); }
+  });
+  fileInput.addEventListener("change", () => {
+    const file = fileInput.files && fileInput.files[0];
+    fileInput.value = "";
+    if (file) loadFile(file);
+  });
+  $("demoBtn").addEventListener("click", loadDemo);
+
+  ["dragenter", "dragover"].forEach((type) => {
+    window.addEventListener(type, (e) => { e.preventDefault(); drop.classList.add("drag"); });
+  });
+  window.addEventListener("dragleave", (e) => {
+    if (e.target === document.documentElement || e.target === document.body) drop.classList.remove("drag");
+  });
+  window.addEventListener("drop", (e) => {
+    e.preventDefault();
+    drop.classList.remove("drag");
+    const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if (file) loadFile(file);
+  });
+  document.addEventListener("paste", (e) => {
+    const items = e.clipboardData && e.clipboardData.items;
+    if (!items) return;
+    for (const item of items) {
+      if (item.type.startsWith("image/")) {
+        const file = item.getAsFile();
+        if (file) { e.preventDefault(); loadFile(file); }
+        return;
+      }
+    }
+  });
+
+  syncPair(longSide, longSideNum);
+  syncPair(colors, colorNum);
+  fitSel.addEventListener("change", () => { syncFitUI(); schedule(); });
+  $("customW").addEventListener("input", schedule);
+  $("customH").addEventListener("input", schedule);
+  unlimited.addEventListener("change", () => { syncColorUI(); schedule(); });
+  $("bgMode").addEventListener("change", () => { syncBgUI(); schedule(); });
+  $("strength").addEventListener("input", () => { syncOutputs(); schedule(); });
+  $("beadSize").addEventListener("change", () => { if (current) renderStats(); });
+  $("showIndex").addEventListener("change", () => { if (current) renderPattern(); });
+  ["bri", "con", "sat"].forEach((id) => {
+    $(id).addEventListener("input", () => { syncOutputs(); schedule(); });
+  });
+  $("resetAdj").addEventListener("click", () => {
+    $("bri").value = 0; $("con").value = 100; $("sat").value = 100;
+    syncOutputs();
+    if (source) analyze();
+  });
+  document.querySelectorAll("[data-preset]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const p = PRESETS[btn.dataset.preset];
+      fitSel.value = p.fit;
+      longSide.value = p.long;
+      longSideNum.value = p.long;
+      colors.value = p.colors;
+      colorNum.value = p.colors;
+      unlimited.checked = false;
+      syncFitUI();
+      syncColorUI();
+      if (source) analyze();
+    });
+  });
+
+  board.addEventListener("pointermove", (e) => {
+    const hit = hitTest(e);
+    if (!hit) { tip.hidden = true; return; }
+    const name = hit.id < 0 ? "空位" : current.numOf.get(hit.id) + " " + PALETTE[hit.id].name;
+    tip.textContent = (hit.y + 1) + " 行 " + (hit.x + 1) + " 列 · " + name;
+    tip.hidden = false;
+    tip.style.left = e.clientX + "px";
+    tip.style.top = e.clientY + "px";
+  });
+  board.addEventListener("pointerleave", () => { tip.hidden = true; });
+  board.addEventListener("click", (e) => {
+    const hit = hitTest(e);
+    if (!hit || hit.id < 0) {
+      if (current && current.highlight >= 0) toggleHighlight(current.highlight);
+      return;
+    }
+    toggleHighlight(hit.id);
+  });
+
+  $("copyBtn").addEventListener("click", async () => {
+    if (!current) return;
+    const text = listText();
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (err) {
+      const area = document.createElement("textarea");
+      area.value = text;
+      document.body.appendChild(area);
+      area.select();
+      document.execCommand("copy");
+      area.remove();
+    }
+    $("copyBtn").textContent = "已复制";
+    setTimeout(() => { $("copyBtn").textContent = "复制清单"; }, 1400);
+  });
+  $("saveBtn").addEventListener("click", () => {
+    if (!current) return;
+    const sheet = buildSheet();
+    sheet.toBlob((blob) => {
+      if (!blob) { $("status").textContent = "图纸导出失败。"; return; }
+      const a = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+      a.href = url;
+      a.download = "拼豆图纸-" + current.gw + "x" + current.gh + ".png";
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    });
+  });
+  $("printBtn").addEventListener("click", () => window.print());
+  window.addEventListener("resize", () => { if (current) renderPattern(); });
+
+  syncFitUI();
+  syncBgUI();
+  syncColorUI();
+  syncOutputs();
+})();
+</script>
+</body>
+</html>

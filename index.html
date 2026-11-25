@@ -56,6 +56,18 @@
     letter-spacing: 0.08em;
   }
   .sub { margin: 6px 0 0; color: var(--muted); max-width: 640px; }
+  .search {
+    width: 100%;
+    margin: 0 0 16px;
+    border: 1px solid var(--line);
+    background: #fffaf3;
+    border-radius: 999px;
+    padding: 12px 18px;
+    outline: none;
+    font: inherit;
+  }
+  .search:focus { border-color: #b08968; }
+  mark { background: #f3d48a; color: inherit; border-radius: 4px; padding: 0 2px; }
   .board {
     display: grid;
     grid-template-columns: 220px 1fr;
@@ -124,9 +136,10 @@
     <div class="seal">目</div>
     <div>
       <h1>网页目录</h1>
-      <p class="sub">先点左边的一级目录，再点右边的二级页面。点「冷笑话大全」就会进入那一页。</p>
+      <p class="sub">先点左边的一级目录，再点右边的页面进入。也可以直接搜索页面名字。</p>
     </div>
   </header>
+  <input id="q" class="search" type="search" placeholder="搜索页面，例如五子棋、冷笑话" autocomplete="off" />
   <div class="board">
     <section class="panel">
       <p class="label">一级目录</p>
@@ -153,32 +166,81 @@ const CATALOG = [
         summary: "珍藏的放在最前。可以标好笑或不好笑，再把好笑的导出成 txt。"
       }
     ]
+  },
+  {
+    name: "游戏",
+    note: "能直接打开玩的页面",
+    pages: [
+      { title: "黑白棋", href: "games/heibaiqi/index.html", summary: "双方轮流落子，把对方棋子夹在中间就会翻面。" },
+      { title: "角度感知", href: "games/jiaodu/index.html", summary: "看两条线张开的角度，判断自己估得准不准。" },
+      { title: "井字棋", href: "games/jingziqi/index.html", summary: "在九宫格里抢先连成三个。" },
+      { title: "拼豆分析", href: "games/pindou/index.html", summary: "把图片拆成可以照着拼的拼豆图纸。" },
+      { title: "跳棋", href: "games/tiaoqi/index.html", summary: "棋子可以连跳，先把己方走到对面。" },
+      { title: "五子棋", href: "games/wuziqi/index.html", summary: "轮流落子，先连成五子的一方获胜。" }
+    ]
   }
 ];
 
 const level1 = document.getElementById("level1");
 const level2 = document.getElementById("level2");
 const level2Label = document.getElementById("level2-label");
+const search = document.getElementById("q");
 let current = 0;
 
+function esc(value) {
+  return String(value).replace(/[&<>"']/g, (ch) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  }[ch]));
+}
+function highlight(value, query) {
+  const safe = esc(value);
+  if (!query) return safe;
+  const pattern = esc(query).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return safe.replace(new RegExp(pattern, "gi"), (hit) => `<mark>${hit}</mark>`);
+}
+function query() {
+  return search.value.trim();
+}
+function pageMatches(group, page, q) {
+  if (!q) return true;
+  return (group.name + " " + page.title + " " + page.summary).toLowerCase().includes(q.toLowerCase());
+}
+function visibleGroups() {
+  const q = query();
+  return CATALOG.map((group, index) => ({
+    group,
+    index,
+    pages: group.pages.filter((page) => pageMatches(group, page, q))
+  })).filter((item) => item.pages.length);
+}
+
 function render() {
-  level1.innerHTML = CATALOG.map((group, i) => `
-    <button class="folder${i === current ? " on" : ""}" type="button" data-index="${i}">
-      ${group.name}
-      <small>${group.pages.length} 个页面 · ${group.note}</small>
-    </button>
-  `).join("");
-  const group = CATALOG[current];
-  level2Label.textContent = "二级目录 · " + group.name;
-  if (!group.pages.length) {
-    level2.innerHTML = `<div class="empty">这个目录里还没有页面。</div>`;
+  const q = query();
+  const groups = visibleGroups();
+  if (!groups.some((item) => item.index === current)) {
+    current = groups.length ? groups[0].index : 0;
+  }
+  level1.innerHTML = groups.length
+    ? groups.map((item) => `
+      <button class="folder${item.index === current ? " on" : ""}" type="button" data-index="${item.index}">
+        ${highlight(item.group.name, q)}
+        <small>${item.pages.length} 个页面 · ${highlight(item.group.note, q)}</small>
+      </button>
+    `).join("")
+    : `<div class="empty">没有符合的目录。</div>`;
+  const shown = groups.find((item) => item.index === current);
+  level2Label.textContent = q
+    ? "搜索结果" + (shown ? " · " + shown.group.name : "")
+    : "二级目录" + (shown ? " · " + shown.group.name : "");
+  if (!shown) {
+    level2.innerHTML = `<div class="empty">没有找到「${esc(q)}」。</div>`;
     return;
   }
-  level2.innerHTML = group.pages.map(page => `
-    <a class="page" href="${page.href}">
+  level2.innerHTML = shown.pages.map((page) => `
+    <a class="page" href="${esc(page.href)}">
       <span class="enter">进入</span>
-      <strong>${page.title}</strong>
-      <small>${page.summary}</small>
+      <strong>${highlight(page.title, q)}</strong>
+      <small>${highlight(page.summary, q)}</small>
     </a>
   `).join("");
 }
@@ -189,6 +251,7 @@ level1.addEventListener("click", (event) => {
   current = Number(button.dataset.index);
   render();
 });
+search.addEventListener("input", render);
 
 render();
 </script>

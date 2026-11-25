@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>跳棋</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23f4efe8'/%3E%3Cpath d='M16 5l3.2 7.2L27 16l-7.8 3.8L16 27l-3.2-7.2L5 16l7.8-3.8z' fill='%231e4548'/%3E%3C/svg%3E">
+<style>
+  :root {
+    --ink: #241f1a;
+    --muted: #8a7d70;
+    --line: rgba(36, 31, 26, 0.14);
+    --paper: #f4efe8;
+    --cinnabar: #9d3b2c;
+    --serif: "Songti SC", "STSongti-SC-Regular", "Noto Serif SC", Palatino, "Palatino Linotype", serif;
+    --sans: "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", "Source Han Sans SC", sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    min-height: 100%;
+    background: var(--paper);
+    color: var(--ink);
+  }
+
+  body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    font-family: var(--sans);
+    -webkit-font-smoothing: antialiased;
+    background-image:
+      radial-gradient(900px 480px at 50% -10%, rgba(255, 252, 247, 0.95), transparent 60%);
+  }
+
+  button { font-family: inherit; }
+  ::selection { background: #ead7b6; }
+
+  .wrap {
+    width: min(calc(100% - 36px), calc(100vh - 196px));
+    width: min(calc(100% - 36px), calc(100dvh - 196px));
+    margin: auto;
+    padding: 16px 0 18px;
+  }
+
+  header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+  }
+
+  h1 {
+    margin: 0;
+    font-family: var(--serif);
+    font-size: 42px;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    line-height: 1;
+  }
+
+  .sub {
+    margin: 10px 0 0;
+    color: var(--muted);
+    font-size: 13px;
+    letter-spacing: 0.08em;
+  }
+
+  .score {
+    display: flex;
+    gap: 22px;
+    align-items: baseline;
+    padding-bottom: 2px;
+  }
+
+  .score b {
+    font-family: var(--serif);
+    font-size: 32px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0;
+    line-height: 1;
+  }
+
+  .score em {
+    font-style: normal;
+    margin-left: 4px;
+    color: var(--muted);
+    font-size: 12px;
+    letter-spacing: 0.16em;
+  }
+
+  .score b.lead { color: var(--cinnabar); }
+
+  .board-wrap { margin-top: 16px; }
+
+  canvas {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 18px;
+    touch-action: none;
+    background: transparent;
+  }
+
+  .bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px 28px;
+    margin-top: 14px;
+    flex-wrap: wrap;
+  }
+
+  .turn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 28px;
+  }
+
+  .pip {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    flex: none;
+  }
+
+  .pip.white {
+    background: radial-gradient(circle at 35% 32%, #fff, #ddd4c6 70%);
+    box-shadow: inset 0 0 0 1px rgba(80, 60, 30, 0.28), 0 1px 2px rgba(40, 24, 8, 0.12);
+  }
+
+  .pip.red {
+    background: radial-gradient(circle at 35% 32%, #e18474, #8f3228 70%);
+    box-shadow: 0 1px 2px rgba(80, 24, 16, 0.25);
+  }
+
+  .pip.think { animation: breathe 1.1s ease-in-out infinite; }
+
+  @keyframes breathe { 50% { opacity: 0.35; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pip.think { animation: none; }
+  }
+
+  #status {
+    margin: 0;
+    font-family: var(--serif);
+    font-size: 18px;
+    letter-spacing: 0.08em;
+  }
+
+  #status.win { color: var(--cinnabar); }
+
+  .actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .seg {
+    display: inline-flex;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    overflow: hidden;
+  }
+
+  button {
+    appearance: none;
+    border: 1px solid var(--line);
+    background: transparent;
+    color: var(--ink);
+    border-radius: 999px;
+    padding: 8px 16px;
+    font-size: 13px;
+    letter-spacing: 0.14em;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+  }
+
+  .seg button { border: 0; border-radius: 0; }
+
+  button:hover { background: rgba(36, 31, 26, 0.05); }
+
+  button.on,
+  button.primary {
+    background: var(--ink);
+    color: #f7f3ec;
+    border-color: var(--ink);
+  }
+
+  button.on:hover,
+  button.primary:hover { background: #3a342c; }
+
+  button:disabled {
+    opacity: 0.32;
+    cursor: default;
+    background: transparent;
+    color: var(--ink);
+  }
+
+  button:focus-visible {
+    outline: 2px solid var(--cinnabar);
+    outline-offset: 3px;
+  }
+
+  @media (max-width: 560px) {
+    .wrap { width: min(calc(100% - 28px), calc(100dvh - 168px)); padding: 16px 0 18px; }
+    h1 { font-size: 34px; letter-spacing: 0.14em; }
+    .bar { align-items: stretch; flex-direction: column; gap: 14px; }
+    .actions { width: 100%; justify-content: space-between; }
+  }
+</style>
+</head>
+<body><style>
+a.catalog-back{position:fixed;top:12px;left:12px;z-index:9999;display:inline-flex;align-items:center;padding:6px 12px;border-radius:999px;background:rgba(255,250,243,.94);color:#241c14;border:1px solid #e3d3be;text-decoration:none;font:14px/1.4 "PingFang SC","Hiragino Sans GB","Noto Sans SC",sans-serif;box-shadow:0 6px 16px rgba(60,40,20,.08)}
+a.catalog-back:hover{border-color:#9d2c1a;color:#9d2c1a}
+</style>
+<a class="catalog-back" href="../../index.html">返回目录</a>
+
+  <main class="wrap">
+    <header>
+      <div>
+        <h1>跳棋</h1>
+        <p class="sub" id="sub">白先 · 十子到对岸</p>
+      </div>
+      <div class="score" aria-label="已到对岸">
+        <span><b id="score-w">0</b><em>白</em></span>
+        <span><b id="score-r">0</b><em>红</em></span>
+      </div>
+    </header>
+
+    <div class="board-wrap">
+      <canvas id="board" width="880" height="880" aria-label="跳棋星形棋盘"></canvas>
+    </div>
+
+    <div class="bar">
+      <div class="turn">
+        <i class="pip white" id="pip" aria-hidden="true"></i>
+        <p id="status">白方落子</p>
+      </div>
+      <div class="actions">
+        <div class="seg" role="group" aria-label="对局方式">
+          <button type="button" id="mode-pvp" class="on" aria-pressed="true">对弈</button>
+          <button type="button" id="mode-ai" aria-pressed="false">人机</button>
+        </div>
+        <button type="button" id="undo" disabled>悔棋</button>
+        <button type="button" id="restart" class="primary">重开</button>
+      </div>
+    </div>
+  </main>
+
+<script>
+(function () {
+  const DIRS = [[1, 0], [1, -1], [0, -1], [-1, 0], [-1, 1], [0, 1]];
+  const OUTLINE = [[-4, -4], [0, -4], [4, -8], [4, -4], [8, -4], [4, 0], [4, 4], [0, 4], [-4, 8], [-4, 4], [-8, 4], [-4, 0]];
+  const canvas = document.getElementById("board");
+  const ctx = canvas.getContext("2d");
+  const statusEl = document.getElementById("status");
+  const subEl = document.getElementById("sub");
+  const pipEl = document.getElementById("pip");
+  const undoBtn = document.getElementById("undo");
+  const restartBtn = document.getElementById("restart");
+  const pvpBtn = document.getElementById("mode-pvp");
+  const aiBtn = document.getElementById("mode-ai");
+  const scoreWEl = document.getElementById("score-w");
+  const scoreREl = document.getElementById("score-r");
+  const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  const key = (q, r) => q + "," + r;
+  const parse = (k) => k.split(",").map(Number);
+
+  const board = new Set();
+  const corners = Array.from({ length: 6 }, () => []);
+
+  (function build() {
+    for (let q = -4; q <= 4; q++) {
+      for (let r = -4; r <= 4; r++) {
+        const s = -q - r;
+        if (Math.max(Math.abs(q), Math.abs(r), Math.abs(s)) <= 4) board.add(key(q, r));
+      }
+    }
+    const seed = [[5, -4], [5, -3], [5, -2], [5, -1], [6, -4], [6, -3], [6, -2], [7, -4], [7, -3], [8, -4]];
+    const rot = (q, r) => [-r, q + r];
+    for (const [q, r] of seed) {
+      let p = [q, r];
+      for (let i = 0; i < 6; i++) {
+        corners[i].push(p);
+        board.add(key(p[0], p[1]));
+        p = rot(p[0], p[1]);
+      }
+    }
+  })();
+
+  const HOME = { 1: new Set(corners[0].map((p) => key(p[0], p[1]))), 2: new Set(corners[3].map((p) => key(p[0], p[1]))) };
+  const GOAL = { 1: HOME[2], 2: HOME[1] };
+
+  let map, history, current, winner, selected, hints, hover, mode, thinking, timer, anim;
+  let geom = { cx: 440, cy: 440, S: 20, gap: 34 };
+
+  function reset() {
+    clearTimeout(timer);
+    map = new Map();
+    for (const k of HOME[1]) map.set(k, 1);
+    for (const k of HOME[2]) map.set(k, 2);
+    history = [];
+    current = 1;
+    winner = null;
+    selected = null;
+    hints = [];
+    hover = null;
+    thinking = false;
+    anim = null;
+    paint();
+    sync();
+  }
+
+  function arrived(player) {
+    let n = 0;
+    for (const [k, p] of map) if (p === player && GOAL[player].has(k)) n++;
+    return n;
+  }
+
+  function remember() {
+    history.push({ entries: [...map.entries()], current: current });
+  }
+
+  function pieceMoves(k) {
+    const [q, r] = parse(k);
+    const steps = [];
+    for (const [dq, dr] of DIRS) {
+      const nk = key(q + dq, r + dr);
+      if (board.has(nk) && !map.has(nk)) steps.push({ to: nk, path: [k, nk] });
+    }
+    const jumps = new Map();
+    const occ = new Map(map);
+    occ.delete(k);
+    function dfs(pos, path, seen) {
+      const [cq, cr] = parse(pos);
+      for (const [dq, dr] of DIRS) {
+        const mid = key(cq + dq, cr + dr);
+        const land = key(cq + dq * 2, cr + dr * 2);
+        if (!board.has(mid) || !board.has(land)) continue;
+        if (!occ.has(mid) || occ.has(land) || seen.has(land)) continue;
+        const nextSeen = new Set(seen);
+        nextSeen.add(land);
+        const nextPath = path.concat(land);
+        if (!jumps.has(land)) jumps.set(land, nextPath);
+        dfs(land, nextPath, nextSeen);
+      }
+    }
+    dfs(k, [k], new Set([k]));
+    const list = steps.filter((s) => !jumps.has(s.to));
+    for (const [to, path] of jumps) list.push({ to: to, path: path });
+    return list;
+  }
+
+  function allMoves(player) {
+    const list = [];
+    for (const [k, p] of map) {
+      if (p !== player) continue;
+      for (const m of pieceMoves(k)) list.push({ from: k, to: m.to, path: m.path });
+    }
+    return list;
+  }
+
+  function hexDist(a, b) {
+    const [aq, ar] = parse(a);
+    const [bq, br] = parse(b);
+    const as = -aq - ar;
+    const bs = -bq - br;
+    return (Math.abs(aq - bq) + Math.abs(ar - br) + Math.abs(as - bs)) / 2;
+  }
+
+  function minGoal(k, player) {
+    let best = Infinity;
+    for (const g of GOAL[player]) best = Math.min(best, hexDist(k, g));
+    return best;
+  }
+
+  function evaluate(player) {
+    const opp = 3 - player;
+    let mine = 0;
+    let other = 0;
+    let home = 0;
+    for (const [k, p] of map) {
+      if (p === player) {
+        mine += minGoal(k, player);
+        if (HOME[player].has(k)) home++;
+      } else {
+        other += minGoal(k, opp);
+      }
+    }
+    return -mine * 14 - home * 6 + other * 3;
+  }
+
+  function chooseMove(player) {
+    const moves = allMoves(player);
+    if (!moves.length) return null;
+    let bestScore = -Infinity;
+    let best = [];
+    for (const m of moves) {
+      const who = map.get(m.from);
+      map.delete(m.from);
+      map.set(m.to, who);
+      const score = evaluate(player);
+      map.delete(m.to);
+      map.set(m.from, who);
+      if (score > bestScore + 0.001) {
+        bestScore = score;
+        best = [m];
+      } else if (score >= bestScore - 0.001) best.push(m);
+    }
+    best.sort((a, b) => b.path.length - a.path.length);
+    const span = best[0].path.length;
+    const top = best.filter((m) => m.path.length === span);
+    return top[Math.floor(Math.random() * top.length)];
+  }
+
+  function commit(from, to, path) {
+    remember();
+    const player = map.get(from);
+    map.delete(from);
+    map.set(to, player);
+    selected = null;
+    hints = [];
+    hover = null;
+    anim = reduceMotion ? null : { path: path, t0: performance.now(), player: player, to: to };
+    if (arrived(player) === 10) winner = player;
+    else current = 3 - player;
+    paint();
+    if (anim) requestAnimationFrame(tick);
+    sync();
+    if (winner === null && mode === "ai" && current === 2) scheduleAi();
+  }
+
+  function tick() {
+    if (!anim) return;
+    const dur = (anim.path.length - 1) * 150;
+    paint();
+    if (performance.now() - anim.t0 < dur) requestAnimationFrame(tick);
+    else { anim = null; paint(); }
+  }
+
+  function undo() {
+    if (!history.length) return;
+    clearTimeout(timer);
+    thinking = false;
+    anim = null;
+    selected = null;
+    hints = [];
+    const snaps = [history.pop()];
+    if (mode === "ai" && snaps[0].current === 2 && history.length) snaps.unshift(history.pop());
+    const snap = snaps[0];
+    map = new Map(snap.entries);
+    current = snap.current;
+    winner = null;
+    hover = null;
+    paint();
+    sync();
+  }
+
+  function scheduleAi() {
+    thinking = true;
+    sync();
+    timer = setTimeout(() => {
+      if (mode !== "ai" || winner !== null || current !== 2) {
+        thinking = false;
+        sync();
+        return;
+      }
+      const move = chooseMove(2);
+      thinking = false;
+      if (move) commit(move.from, move.to, move.path);
+      else { current = 1; sync(); }
+    }, 320);
+  }
+
+  function setMode(next) {
+    if (mode === next) return;
+    mode = next;
+    pvpBtn.classList.toggle("on", mode === "pvp");
+    aiBtn.classList.toggle("on", mode === "ai");
+    pvpBtn.setAttribute("aria-pressed", mode === "pvp" ? "true" : "false");
+    aiBtn.setAttribute("aria-pressed", mode === "ai" ? "true" : "false");
+    reset();
+  }
+
+  function sync() {
+    const names = { 1: "白方", 2: "红方" };
+    const w = arrived(1);
+    const r = arrived(2);
+    scoreWEl.textContent = String(w);
+    scoreREl.textContent = String(r);
+    scoreWEl.classList.toggle("lead", winner === 1);
+    scoreREl.classList.toggle("lead", winner === 2);
+    statusEl.classList.toggle("win", winner === 1 || winner === 2);
+    if (winner === 1 || winner === 2) statusEl.textContent = names[winner] + "胜";
+    else if (thinking) statusEl.textContent = "电脑落子";
+    else statusEl.textContent = names[current] + "落子";
+    subEl.textContent = mode === "ai" ? "你执白 · 电脑执红" : "白先 · 十子到对岸";
+    const show = (winner === 1 || winner === 2) ? winner : (thinking ? 2 : current);
+    pipEl.className = "pip " + (show === 2 ? "red" : "white") + (thinking ? " think" : "");
+    undoBtn.disabled = history.length === 0;
+    restartBtn.textContent = winner !== null ? "再来" : "重开";
+  }
+
+  function metric() {
+    const size = canvas.clientWidth || 880;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+    canvas.width = Math.round(size * dpr);
+    canvas.height = Math.round(size * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    let maxR = 1;
+    for (const k of board) {
+      const [q, r] = parse(k);
+      const x = Math.sqrt(3) * q + Math.sqrt(3) / 2 * r;
+      const y = 1.5 * r;
+      maxR = Math.max(maxR, Math.hypot(x, y));
+    }
+    const tipX = Math.sqrt(3) * 8 + Math.sqrt(3) / 2 * -4;
+    const tipY = 1.5 * -4;
+    const rot = -Math.PI / 2 - Math.atan2(tipY, tipX);
+    const S = (size * 0.42) / maxR;
+    geom = { cx: size / 2, cy: size / 2, S: S, gap: S * Math.sqrt(3), size: size, rot: rot };
+  }
+
+  function pixel(q, r) {
+    const x = geom.S * (Math.sqrt(3) * q + Math.sqrt(3) / 2 * r);
+    const y = geom.S * (1.5 * r);
+    const c = Math.cos(geom.rot);
+    const s = Math.sin(geom.rot);
+    return [geom.cx + c * x - s * y, geom.cy + s * x + c * y];
+  }
+
+  function inflate(q, r, margin) {
+    const [x, y] = pixel(q, r);
+    const dx = x - geom.cx;
+    const dy = y - geom.cy;
+    const len = Math.hypot(dx, dy) || 1;
+    return [x + dx / len * margin, y + dy / len * margin];
+  }
+
+  function starPath(margin) {
+    ctx.beginPath();
+    OUTLINE.forEach((p, i) => {
+      const [x, y] = inflate(p[0], p[1], margin);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.closePath();
+  }
+
+  function drawMarble(x, y, player, alpha) {
+    const rad = geom.gap * 0.4;
+    ctx.save();
+    ctx.globalAlpha = alpha == null ? 1 : alpha;
+    ctx.beginPath();
+    ctx.ellipse(x + rad * 0.08, y + rad * 0.34, rad * 0.72, rad * 0.28, 0, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(8, 24, 28, 0.28)";
+    ctx.fill();
+    const g = ctx.createRadialGradient(x - rad * 0.36, y - rad * 0.4, rad * 0.1, x, y + rad * 0.05, rad);
+    if (player === 1) {
+      g.addColorStop(0, "#ffffff");
+      g.addColorStop(0.55, "#f4efe6");
+      g.addColorStop(1, "#d4cbbd");
+    } else {
+      g.addColorStop(0, "#f0a090");
+      g.addColorStop(0.45, "#c24b3c");
+      g.addColorStop(1, "#7a2c24");
+    }
+    ctx.beginPath();
+    ctx.arc(x, y, rad, 0, Math.PI * 2);
+    ctx.fillStyle = g;
+    ctx.fill();
+    if (player === 1) {
+      ctx.strokeStyle = "rgba(90, 70, 40, 0.18)";
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+    ctx.beginPath();
+    ctx.ellipse(x - rad * 0.32, y - rad * 0.36, rad * 0.18, rad * 0.11, -0.7, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(255,255,255,0.85)";
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function animSpot() {
+    if (!anim) return null;
+    const hops = anim.path.length - 1;
+    const dur = hops * 150;
+    const t = Math.min(1, (performance.now() - anim.t0) / dur);
+    const pos = t * hops;
+    const i = Math.min(hops - 1, Math.floor(pos));
+    const u = pos - i;
+    const [aq, ar] = parse(anim.path[i]);
+    const [bq, br] = parse(anim.path[i + 1]);
+    const [x1, y1] = pixel(aq, ar);
+    const [x2, y2] = pixel(bq, br);
+    const ease = u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2;
+    const lift = Math.sin(u * Math.PI) * geom.gap * (anim.path.length > 2 ? 0.45 : 0.12);
+    return { x: x1 + (x2 - x1) * ease, y: y1 + (y2 - y1) * ease - lift, player: anim.player };
+  }
+
+  function paint() {
+    metric();
+    const { size } = geom;
+    ctx.clearRect(0, 0, size, size);
+    const margin = geom.gap * 0.92;
+
+    ctx.save();
+    ctx.shadowColor = "rgba(16, 36, 40, 0.16)";
+    ctx.shadowBlur = 26;
+    ctx.shadowOffsetY = 12;
+    starPath(margin);
+    const g = ctx.createRadialGradient(geom.cx, geom.cy - size * 0.08, size * 0.04, geom.cx, geom.cy, size * 0.46);
+    g.addColorStop(0, "#31696d");
+    g.addColorStop(0.58, "#1e474b");
+    g.addColorStop(1, "#17393d");
+    ctx.fillStyle = g;
+    ctx.fill();
+    ctx.restore();
+
+    starPath(margin);
+    ctx.strokeStyle = "rgba(255, 248, 236, 0.18)";
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    const holeR = geom.gap * 0.15;
+    for (const k of board) {
+      const [q, r] = parse(k);
+      const [x, y] = pixel(q, r);
+      ctx.beginPath();
+      ctx.arc(x, y, holeR, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(6, 20, 24, 0.35)";
+      ctx.fill();
+    }
+
+    const hintSet = new Map(hints.map((h) => [h.to, h]));
+    for (const h of hints) {
+      const [q, r] = parse(h.to);
+      const [x, y] = pixel(q, r);
+      const jump = h.path.length > 2;
+      ctx.beginPath();
+      ctx.arc(x, y, holeR * (jump ? 1.55 : 1.15), 0, Math.PI * 2);
+      ctx.fillStyle = jump ? "rgba(255, 236, 214, 0.92)" : "rgba(255, 248, 236, 0.55)";
+      ctx.fill();
+    }
+
+    const spot = animSpot();
+    for (const [k, p] of map) {
+      if (anim && k === anim.to) continue;
+      const [q, r] = parse(k);
+      const [x, y] = pixel(q, r);
+      drawMarble(x, y, p, 1);
+      if (k === selected) {
+        ctx.beginPath();
+        ctx.arc(x, y, geom.gap * 0.5, 0, Math.PI * 2);
+        ctx.strokeStyle = "rgba(255, 248, 236, 0.9)";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+    }
+    if (spot) drawMarble(spot.x, spot.y, spot.player, 1);
+
+    if (hover && hintSet.has(hover) && !anim) {
+      const [q, r] = parse(hover);
+      const [x, y] = pixel(q, r);
+      ctx.beginPath();
+      ctx.arc(x, y, geom.gap * 0.4, 0, Math.PI * 2);
+      ctx.strokeStyle = "rgba(255, 248, 236, 0.7)";
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+  }
+
+  function localPoint(e) {
+    const rect = canvas.getBoundingClientRect();
+    return [e.clientX - rect.left, e.clientY - rect.top];
+  }
+
+  function holeAt(x, y) {
+    let best = null;
+    let bestD = geom.gap * 0.46;
+    for (const k of board) {
+      const [q, r] = parse(k);
+      const [hx, hy] = pixel(q, r);
+      const d = Math.hypot(hx - x, hy - y);
+      if (d < bestD) { bestD = d; best = k; }
+    }
+    return best;
+  }
+
+  function selectPiece(k) {
+    selected = k;
+    hints = pieceMoves(k);
+    paint();
+    sync();
+  }
+
+  canvas.addEventListener("pointermove", (e) => {
+    const [x, y] = localPoint(e);
+    const next = holeAt(x, y);
+    const useful = next && (hints.some((h) => h.to === next) || (map.get(next) === current && !thinking && winner === null && (mode === "pvp" || current === 1)));
+    canvas.style.cursor = useful ? "pointer" : "default";
+    if (next === hover) return;
+    hover = next;
+    paint();
+  });
+
+  canvas.addEventListener("pointerleave", () => {
+    hover = null;
+    canvas.style.cursor = "default";
+    paint();
+  });
+
+  canvas.addEventListener("pointerdown", (e) => {
+    if (e.button !== undefined && e.button !== 0) return;
+    if (winner !== null || thinking || anim) return;
+    if (mode === "ai" && current !== 1) return;
+    const [x, y] = localPoint(e);
+    const k = holeAt(x, y);
+    if (!k) { selected = null; hints = []; paint(); return; }
+    const hint = hints.find((h) => h.to === k);
+    if (hint && selected) {
+      commit(selected, hint.to, hint.path);
+      return;
+    }
+    if (map.get(k) === current) {
+      if (selected === k) { selected = null; hints = []; paint(); }
+      else selectPiece(k);
+    }
+  });
+
+  undoBtn.addEventListener("click", undo);
+  restartBtn.addEventListener("click", reset);
+  pvpBtn.addEventListener("click", () => setMode("pvp"));
+  aiBtn.addEventListener("click", () => setMode("ai"));
+
+  window.addEventListener("keydown", (e) => {
+    const tag = document.activeElement && document.activeElement.tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA") return;
+    if (e.key === "z" || e.key === "Z") undo();
+    if (e.key === "r" || e.key === "R") reset();
+  });
+
+  new ResizeObserver(() => paint()).observe(canvas.parentElement);
+  mode = "pvp";
+  reset();
+})();
+</script>
+</body>
+</html>

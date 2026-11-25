@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>角度知觉</title>
+  <style>
+    :root {
+      --paper: #ebe4d6;
+      --card: #f7f3eb;
+      --ink: #1e1b16;
+      --muted: #5e574c;
+      --line: #d5cbbd;
+      --cinnabar: #c44832;
+      --pine: #1d6a4c;
+      --brass: #8a6232;
+      color-scheme: light;
+    }
+
+    * { box-sizing: border-box; }
+
+    [hidden] { display: none !important; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(900px 420px at 70% -10%, rgba(255, 252, 245, 0.9), transparent 55%),
+        var(--paper);
+      color: var(--ink);
+      font-family: "Iowan Old Style", "Palatino Linotype", Palatino, "Songti SC", "Songti TC", "STSong", "Noto Serif SC", serif;
+      font-variant-numeric: lining-nums tabular-nums;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    ::selection { background: #ead3c6; }
+
+    main {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 36px 28px 72px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--ink);
+    }
+
+    .eyebrow {
+      margin: 0 0 6px;
+      font-size: 13px;
+      letter-spacing: 0.22em;
+      color: var(--muted);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 44px;
+      font-weight: 520;
+      letter-spacing: 0.08em;
+      line-height: 1;
+    }
+
+    .lead {
+      max-width: 40em;
+      margin: 12px 0 0;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.65;
+    }
+
+    .index {
+      margin: 0;
+      white-space: nowrap;
+      font-size: 18px;
+      letter-spacing: 0.14em;
+      color: var(--muted);
+    }
+
+    .index strong {
+      color: var(--ink);
+      font-size: 40px;
+      font-weight: 520;
+      letter-spacing: 0;
+    }
+
+    .stage {
+      display: grid;
+      grid-template-columns: minmax(0, 1.45fr) minmax(260px, 0.72fr);
+      gap: 28px;
+      align-items: start;
+      margin-top: 26px;
+    }
+
+    .dial {
+      background: var(--card);
+      border: 1px solid var(--ink);
+      box-shadow: 8px 8px 0 rgba(30, 27, 22, 0.05);
+      padding: 8px 8px 4px;
+    }
+
+    svg {
+      display: block;
+      width: 100%;
+      height: auto;
+      touch-action: none;
+      cursor: grab;
+      user-select: none;
+    }
+
+    svg.dragging { cursor: grabbing; }
+    svg.locked { cursor: default; }
+
+    svg:focus { outline: none; }
+    svg:focus-visible {
+      outline: 2px solid var(--brass);
+      outline-offset: 3px;
+    }
+
+    .dial-note {
+      margin: 2px 8px 10px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .legend {
+      display: flex;
+      gap: 16px;
+      margin: 0 8px 12px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .swatch {
+      width: 22px;
+      height: 0;
+      border-top: 3px solid var(--cinnabar);
+    }
+
+    .swatch.target {
+      border-top: 3px dashed var(--pine);
+    }
+
+    .question { padding-top: 8px; }
+
+    .kicker {
+      margin: 0;
+      font-size: 13px;
+      letter-spacing: 0.2em;
+      color: var(--muted);
+    }
+
+    .target {
+      margin: 8px 0 0;
+      font-size: clamp(76px, 9vw, 108px);
+      line-height: 0.86;
+      letter-spacing: -0.04em;
+      font-weight: 520;
+      user-select: none;
+    }
+
+    .target .deg {
+      font-size: 0.36em;
+      letter-spacing: 0;
+      margin-left: 0.08em;
+      position: relative;
+      top: -0.72em;
+    }
+
+    .target.flash { animation: rise 380ms ease; }
+
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: none; }
+    }
+
+    .hint {
+      margin: 14px 0 18px;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    button {
+      appearance: none;
+      width: 100%;
+      border: 1px solid var(--ink);
+      background: var(--ink);
+      color: #f7f3eb;
+      font: inherit;
+      font-size: 17px;
+      letter-spacing: 0.08em;
+      padding: 12px 16px;
+      cursor: pointer;
+    }
+
+    button:hover { background: #3a332c; }
+    button:focus-visible { outline: 2px solid var(--brass); outline-offset: 3px; }
+
+    button.secondary {
+      background: transparent;
+      color: var(--ink);
+    }
+
+    button.secondary:hover { background: rgba(30, 27, 22, 0.05); }
+
+    button.text {
+      width: auto;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      padding: 0;
+      font-size: 14px;
+      letter-spacing: 0.08em;
+    }
+
+    button.text:hover {
+      background: transparent;
+      color: var(--ink);
+    }
+
+    .result {
+      margin: 4px 0 16px;
+      padding-top: 14px;
+      border-top: 1px solid var(--line);
+    }
+
+    .result-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .headline {
+      margin: 0;
+      font-size: 40px;
+      font-weight: 520;
+      letter-spacing: -0.03em;
+      line-height: 1;
+    }
+
+    .seal {
+      flex: 0 0 auto;
+      width: 74px;
+      height: 74px;
+      border: 2px solid currentColor;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-size: 15px;
+      letter-spacing: 0.16em;
+      transform: rotate(-8deg);
+    }
+
+    .seal[data-level="good"] { color: var(--pine); }
+    .seal[data-level="mid"] { color: var(--brass); }
+    .seal[data-level="bad"] { color: var(--cinnabar); }
+
+    .detail, .sentence {
+      margin: 10px 0 0;
+      font-size: 16px;
+      line-height: 1.55;
+    }
+
+    .sentence { color: var(--muted); }
+
+    .summary { margin-top: 34px; }
+
+    .summary-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 12px;
+      border-bottom: 1px solid var(--ink);
+      padding-bottom: 8px;
+    }
+
+    .summary h2 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 520;
+      letter-spacing: 0.12em;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 18px;
+      margin-top: 16px;
+    }
+
+    .metric { border-top: 1px solid var(--line); padding-top: 8px; }
+
+    .metric span {
+      display: block;
+      color: var(--muted);
+      font-size: 13px;
+      letter-spacing: 0.12em;
+    }
+
+    .metric b {
+      display: block;
+      margin-top: 6px;
+      font-size: 28px;
+      font-weight: 520;
+    }
+
+    .bars {
+      display: flex;
+      align-items: flex-end;
+      gap: 5px;
+      height: 72px;
+      margin-top: 22px;
+    }
+
+    .bars i {
+      display: block;
+      flex: 1 1 0;
+      max-width: 16px;
+      min-height: 3px;
+      background: var(--cinnabar);
+    }
+
+    .bars i[data-level="good"] { background: var(--pine); }
+    .bars i[data-level="mid"] { background: var(--brass); }
+
+    .log {
+      list-style: none;
+      margin: 8px 0 0;
+      padding: 0;
+    }
+
+    .log li {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 9px 0;
+      border-top: 1px solid var(--line);
+      font-size: 15px;
+    }
+
+    .log li em {
+      font-style: normal;
+      color: var(--muted);
+    }
+
+    .empty, .footnote {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .empty { margin: 16px 0 0; }
+    .footnote { margin: 18px 0 0; }
+
+    @media (max-width: 840px) {
+      main { padding: 24px 16px 48px; }
+      header { flex-direction: column; align-items: flex-start; }
+      .index strong { text-align: left; }
+      h1 { font-size: 36px; }
+      .stage, .metrics { grid-template-columns: 1fr 1fr; }
+      .stage { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 560px) {
+      .metrics { grid-template-columns: 1fr 1fr; }
+      .headline { font-size: 32px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .target.flash { animation: none; }
+    }
+  </style>
+</head>
+<body><style>
+a.catalog-back{position:fixed;top:12px;left:12px;z-index:9999;display:inline-flex;align-items:center;padding:6px 12px;border-radius:999px;background:rgba(255,250,243,.94);color:#241c14;border:1px solid #e3d3be;text-decoration:none;font:14px/1.4 "PingFang SC","Hiragino Sans GB","Noto Sans SC",sans-serif;box-shadow:0 6px 16px rgba(60,40,20,.08)}
+a.catalog-back:hover{border-color:#9d2c1a;color:#9d2c1a}
+</style>
+<a class="catalog-back" href="../../index.html">返回目录</a>
+
+  <main>
+    <header>
+      <div>
+        <p class="eyebrow">知觉测验</p>
+        <h1>角度知觉</h1>
+        <p class="lead">系统随机给出目标角度。请拖动红杆，让它相对右侧水平基线张开到这个度数：贴着基线是 0°，竖直向上是 90°，指向左侧是 180°。确认之前，页面不显示当前读数。</p>
+      </div>
+      <p class="index">第<strong id="trialNo">01</strong>题</p>
+    </header>
+
+    <section class="stage">
+      <div class="dial">
+        <svg id="dial" viewBox="0 0 760 470" tabindex="0" role="img" aria-label="活动杆。从右侧水平基线起，在上半圆里摆出一个角度。确认前没有刻度。">
+          <path id="guideOuter" fill="none" stroke="#1e1b16" stroke-opacity="0.16" stroke-width="1.25"></path>
+          <path id="guideInner" fill="none" stroke="#1e1b16" stroke-opacity="0.1" stroke-width="1"></path>
+          <line id="horizon" stroke="#1e1b16" stroke-opacity="0.28" stroke-width="1.5" stroke-linecap="round"></line>
+          <path id="targetArc" fill="none" stroke="#1d6a4c" stroke-opacity="0.55" stroke-width="2.5" visibility="hidden"></path>
+          <path id="errorArc" fill="none" stroke="#c44832" stroke-width="5" stroke-linecap="round" visibility="hidden"></path>
+          <path id="userArc" fill="none" stroke="#c44832" stroke-opacity="0.7" stroke-width="2.5" stroke-linecap="round"></path>
+          <line id="baseline" stroke="#1e1b16" stroke-width="4" stroke-linecap="round"></line>
+          <path id="arrow" fill="none" stroke="#1e1b16" stroke-width="2" stroke-linecap="round"></path>
+          <line id="targetRod" stroke="#1d6a4c" stroke-width="3" stroke-dasharray="8 6" stroke-linecap="round" visibility="hidden"></line>
+          <line id="rod" stroke="#c44832" stroke-width="5" stroke-linecap="round"></line>
+          <circle id="knob" r="13" fill="#f7f3eb" stroke="#c44832" stroke-width="4"></circle>
+          <circle id="knobDot" r="2.4" fill="#c44832"></circle>
+          <circle id="pivotOuter" r="9" fill="#f7f3eb" stroke="#8a6232" stroke-width="3.5"></circle>
+          <circle id="pivotInner" r="2.3" fill="#8a6232"></circle>
+          <text id="baseLabel" fill="#5e574c" font-size="15" font-family="Songti SC, Songti TC, STSong, serif" text-anchor="middle">水平基线</text>
+          <rect id="hit" x="0" y="0" width="760" height="470" fill="transparent"></rect>
+        </svg>
+        <p class="dial-note">在半圆里按住拖动。方向键 ←↑ 把角张开，→↓ 把角收拢，按住 Shift 时每次 5°。</p>
+        <p id="legend" class="legend" hidden>
+          <span><i class="swatch"></i>你的杆</span>
+          <span><i class="swatch target"></i>目标角度</span>
+        </p>
+      </div>
+
+      <aside class="question">
+        <p class="kicker">目标角度</p>
+        <p class="target" id="target" aria-live="polite">—<span class="deg">°</span></p>
+        <p class="hint" id="hint">红杆先停在一个随机位置，那不是提示。</p>
+        <div id="result" class="result" hidden aria-live="polite">
+          <div class="result-top">
+            <p class="headline" id="headline"></p>
+            <div class="seal" id="seal" data-level="mid"></div>
+          </div>
+          <p class="detail" id="detail"></p>
+          <p class="sentence" id="sentence"></p>
+        </div>
+        <button type="button" id="confirm">确认角度</button>
+        <button type="button" id="next" class="secondary" hidden>下一题</button>
+      </aside>
+    </section>
+
+    <section class="summary">
+      <div class="summary-head">
+        <h2>本次记录</h2>
+        <button type="button" id="reset" class="text">重新开始</button>
+      </div>
+      <div class="metrics">
+        <div class="metric"><span>已测</span><b id="statN">0 题</b></div>
+        <div class="metric"><span>平均绝对误差</span><b id="statMae">—</b></div>
+        <div class="metric"><span>平均偏向</span><b id="statBias">—</b></div>
+        <div class="metric"><span>最佳</span><b id="statBest">—</b></div>
+      </div>
+      <div id="bars" class="bars" hidden></div>
+      <ol id="log" class="log"></ol>
+      <p id="empty" class="empty">完成一题后，这里会记下每一次相差多少。</p>
+      <p class="footnote">绝对误差在 3° 以内记为极准，7° 以内很准，12° 以内接近，20° 以内偏了，再大则是差得远。大了表示角张得过开，小了表示收得过拢。</p>
+    </section>
+  </main>
+  <noscript><p style="padding:24px">需要启用 JavaScript，才能出题和判断角度。</p></noscript>
+
+  <script>
+    (function () {
+      var PIVOT = { x: 380, y: 396 };
+      var LEN = 268;
+      var ARC_R = 96;
+      var ERR_R = 132;
+      var DEAD = 42;
+
+      var els = {
+        svg: document.getElementById("dial"),
+        guideOuter: document.getElementById("guideOuter"),
+        guideInner: document.getElementById("guideInner"),
+        horizon: document.getElementById("horizon"),
+        targetArc: document.getElementById("targetArc"),
+        errorArc: document.getElementById("errorArc"),
+        targetRod: document.getElementById("targetRod"),
+        userArc: document.getElementById("userArc"),
+        baseline: document.getElementById("baseline"),
+        arrow: document.getElementById("arrow"),
+        rod: document.getElementById("rod"),
+        knob: document.getElementById("knob"),
+        knobDot: document.getElementById("knobDot"),
+        pivotOuter: document.getElementById("pivotOuter"),
+        pivotInner: document.getElementById("pivotInner"),
+        baseLabel: document.getElementById("baseLabel"),
+        legend: document.getElementById("legend"),
+        target: document.getElementById("target"),
+        hint: document.getElementById("hint"),
+        result: document.getElementById("result"),
+        headline: document.getElementById("headline"),
+        seal: document.getElementById("seal"),
+        detail: document.getElementById("detail"),
+        sentence: document.getElementById("sentence"),
+        confirm: document.getElementById("confirm"),
+        next: document.getElementById("next"),
+        reset: document.getElementById("reset"),
+        trialNo: document.getElementById("trialNo"),
+        statN: document.getElementById("statN"),
+        statMae: document.getElementById("statMae"),
+        statBias: document.getElementById("statBias"),
+        statBest: document.getElementById("statBest"),
+        bars: document.getElementById("bars"),
+        log: document.getElementById("log"),
+        empty: document.getElementById("empty")
+      };
+
+      var state = {
+        angle: 30,
+        target: 60,
+        locked: false,
+        trials: []
+      };
+
+      var dragging = false;
+
+      function clamp(n, a, b) {
+        return Math.max(a, Math.min(b, n));
+      }
+
+      function round1(n) {
+        var sign = n < 0 ? -1 : 1;
+        return (Math.round(Math.abs(n) * 10) / 10) * sign;
+      }
+
+      function fmt(n) {
+        var r = round1(n);
+        var text = Number.isInteger(Math.abs(r)) ? String(Math.abs(r)) : Math.abs(r).toFixed(1);
+        return (r < 0 ? "-" : "") + text;
+      }
+
+      function polar(r, deg) {
+        var rad = deg * Math.PI / 180;
+        return {
+          x: PIVOT.x + r * Math.cos(rad),
+          y: PIVOT.y - r * Math.sin(rad)
+        };
+      }
+
+      function num(n) {
+        return (Math.round(n * 100) / 100).toString();
+      }
+
+      function arcPath(r, a0, a1) {
+        var start = Math.min(a0, a1);
+        var end = Math.max(a0, a1);
+        if (end - start < 0.35) return "";
+        var marks = [start];
+        if (end - start >= 120) marks.push((start + end) / 2);
+        marks.push(end);
+        var d = "";
+        for (var i = 0; i < marks.length - 1; i++) {
+          var p0 = polar(r, marks[i]);
+          var p1 = polar(r, marks[i + 1]);
+          if (i === 0) d += "M " + num(p0.x) + " " + num(p0.y) + " ";
+          d += "A " + r + " " + r + " 0 0 0 " + num(p1.x) + " " + num(p1.y) + " ";
+        }
+        return d.trim();
+      }
+
+      function setLine(el, deg, len) {
+        var p = polar(len, deg);
+        el.setAttribute("x1", num(PIVOT.x));
+        el.setAttribute("y1", num(PIVOT.y));
+        el.setAttribute("x2", num(p.x));
+        el.setAttribute("y2", num(p.y));
+      }
+
+      function layoutStatic() {
+        els.guideOuter.setAttribute("d", arcPath(LEN, 0, 180));
+        els.guideInner.setAttribute("d", arcPath(LEN * 0.64, 0, 180));
+        var left = polar(LEN, 180);
+        var right = polar(LEN, 0);
+        els.horizon.setAttribute("x1", num(left.x));
+        els.horizon.setAttribute("y1", num(left.y));
+        els.horizon.setAttribute("x2", num(right.x));
+        els.horizon.setAttribute("y2", num(right.y));
+        setLine(els.baseline, 0, LEN);
+        var tip = polar(LEN, 0);
+        var s = 10;
+        els.arrow.setAttribute("d",
+          "M " + num(tip.x) + " " + num(tip.y) +
+          " L " + num(tip.x - s) + " " + num(tip.y - s * 0.55) +
+          " M " + num(tip.x) + " " + num(tip.y) +
+          " L " + num(tip.x - s) + " " + num(tip.y + s * 0.55)
+        );
+        ["pivotOuter", "pivotInner"].forEach(function (id) {
+          els[id].setAttribute("cx", num(PIVOT.x));
+          els[id].setAttribute("cy", num(PIVOT.y));
+        });
+        els.baseLabel.setAttribute("x", num((PIVOT.x + right.x) / 2));
+        els.baseLabel.setAttribute("y", num(PIVOT.y + 32));
+      }
+
+      function render() {
+        var tip = polar(LEN, state.angle);
+        setLine(els.rod, state.angle, LEN);
+        els.knob.setAttribute("cx", num(tip.x));
+        els.knob.setAttribute("cy", num(tip.y));
+        els.knobDot.setAttribute("cx", num(tip.x));
+        els.knobDot.setAttribute("cy", num(tip.y));
+
+        if (!state.locked) {
+          var user = arcPath(ARC_R, 0, state.angle);
+          els.userArc.setAttribute("d", user);
+          els.userArc.style.visibility = user ? "visible" : "hidden";
+          els.targetArc.style.visibility = "hidden";
+          els.errorArc.style.visibility = "hidden";
+          els.targetRod.style.visibility = "hidden";
+          return;
+        }
+
+        els.userArc.style.visibility = "hidden";
+        setLine(els.targetRod, state.target, LEN);
+        els.targetRod.style.visibility = "visible";
+        var correct = arcPath(ARC_R, 0, state.target);
+        els.targetArc.setAttribute("d", correct);
+        els.targetArc.style.visibility = correct ? "visible" : "hidden";
+        var gap = arcPath(ERR_R, state.angle, state.target);
+        els.errorArc.setAttribute("d", gap);
+        els.errorArc.style.visibility = gap ? "visible" : "hidden";
+      }
+
+      function setAngle(deg) {
+        state.angle = clamp(deg, 0, 180);
+        render();
+      }
+
+      function angleFromPoint(p) {
+        var dx = p.x - PIVOT.x;
+        var dy = p.y - PIVOT.y;
+        if (dx * dx + dy * dy < DEAD * DEAD) return null;
+        var deg = Math.atan2(-dy, dx) * 180 / Math.PI;
+        if (deg < 0) deg = deg >= -90 ? 0 : 180;
+        return clamp(deg, 0, 180);
+      }
+
+      function clientToSvg(event) {
+        var point = els.svg.createSVGPoint();
+        point.x = event.clientX;
+        point.y = event.clientY;
+        var ctm = els.svg.getScreenCTM();
+        if (!ctm) return null;
+        var mapped = point.matrixTransform(ctm.inverse());
+        return { x: mapped.x, y: mapped.y };
+      }
+
+      function applyPointer(event) {
+        var p = clientToSvg(event);
+        if (!p) return;
+        var deg = angleFromPoint(p);
+        if (deg === null) return;
+        els.hint.textContent = "看起来对了就确认。确认前不会出现读数。";
+        setAngle(deg);
+      }
+
+      function pickTarget() {
+        var previous = state.trials.length ? state.trials[state.trials.length - 1].target : null;
+        var t = previous;
+        var guard = 0;
+        while ((t === previous || t === null) && guard < 30) {
+          t = 10 + Math.floor(Math.random() * 161);
+          guard += 1;
+        }
+        return t;
+      }
+
+      function pickStart(target) {
+        var a = target;
+        var guard = 0;
+        while (Math.abs(a - target) < 28 && guard < 40) {
+          a = Math.random() * 180;
+          guard += 1;
+        }
+        return a;
+      }
+
+      function grade(abs) {
+        if (abs <= 3) return { seal: abs < 0.05 ? "重合" : "极准", level: "good" };
+        if (abs <= 7) return { seal: "很准", level: "good" };
+        if (abs <= 12) return { seal: "接近", level: "mid" };
+        if (abs <= 20) return { seal: "偏了", level: "mid" };
+        return { seal: "差得远", level: "bad" };
+      }
+
+      function showQuestion() {
+        els.target.classList.remove("flash");
+        els.target.innerHTML = fmt(state.target) + '<span class="deg">°</span>';
+        void els.target.offsetWidth;
+        els.target.classList.add("flash");
+        els.trialNo.textContent = String(state.trials.length + 1).padStart(2, "0");
+      }
+
+      function newQuestion() {
+        state.locked = false;
+        state.target = pickTarget();
+        state.angle = pickStart(state.target);
+        els.svg.classList.remove("locked");
+        els.result.hidden = true;
+        els.legend.hidden = true;
+        els.confirm.hidden = false;
+        els.next.hidden = true;
+        els.hint.textContent = "红杆先停在一个随机位置，那不是提示。";
+        showQuestion();
+        render();
+      }
+
+      function confirmAngle() {
+        if (state.locked) return;
+        var response = round1(state.angle);
+        var signed = round1(response - state.target);
+        var abs = Math.abs(signed);
+        state.angle = response;
+        state.locked = true;
+        els.svg.classList.add("locked");
+        render();
+
+        var g = grade(abs);
+        var headline = abs < 0.05 ? "相差 0°" : (signed > 0 ? "大了 " : "小了 ") + fmt(abs) + "°";
+        var sentence = abs < 0.05
+          ? "你摆出的角度和目标重合。"
+          : (signed > 0 ? "角张得比目标更开。" : "角收得比目标更拢。");
+
+        els.headline.textContent = headline;
+        els.seal.textContent = g.seal;
+        els.seal.dataset.level = g.level;
+        els.detail.textContent = "你摆出 " + fmt(response) + "°，目标 " + fmt(state.target) + "°";
+        els.sentence.textContent = sentence;
+        els.result.hidden = false;
+        els.legend.hidden = false;
+        els.confirm.hidden = true;
+        els.next.hidden = false;
+        els.hint.textContent = "绿虚线是目标角度，红弧是两者相差的部分。";
+
+        state.trials.push({
+          target: state.target,
+          response: response,
+          signed: signed,
+          abs: abs
+        });
+        renderStats();
+      }
+
+      function biasText(bias) {
+        if (Math.abs(bias) < 0.5) return "几乎没有";
+        return (bias > 0 ? "偏大 " : "偏小 ") + fmt(Math.abs(bias)) + "°";
+      }
+
+      function renderStats() {
+        var trials = state.trials;
+        var n = trials.length;
+        els.statN.textContent = n + " 题";
+        els.empty.hidden = n > 0;
+        els.bars.hidden = n === 0;
+        els.log.innerHTML = "";
+        els.bars.innerHTML = "";
+        if (!n) {
+          els.statMae.textContent = "—";
+          els.statBias.textContent = "—";
+          els.statBest.textContent = "—";
+          return;
+        }
+
+        var absSum = 0;
+        var signedSum = 0;
+        var best = Infinity;
+        trials.forEach(function (t) {
+          absSum += t.abs;
+          signedSum += t.signed;
+          if (t.abs < best) best = t.abs;
+        });
+        els.statMae.textContent = fmt(absSum / n) + "°";
+        els.statBias.textContent = biasText(signedSum / n);
+        els.statBest.textContent = fmt(best) + "°";
+
+        trials.slice(-20).forEach(function (t) {
+          var bar = document.createElement("i");
+          var height = Math.max(4, Math.min(100, (t.abs / 30) * 100));
+          bar.style.height = height + "%";
+          bar.title = "目标 " + fmt(t.target) + "°，相差 " + fmt(t.abs) + "°";
+          bar.dataset.level = t.abs <= 7 ? "good" : t.abs <= 20 ? "mid" : "bad";
+          els.bars.appendChild(bar);
+        });
+
+        trials.slice().reverse().slice(0, 8).forEach(function (t) {
+          var li = document.createElement("li");
+          var how = t.abs < 0.05 ? "重合" : (t.signed > 0 ? "大了 " : "小了 ") + fmt(t.abs) + "°";
+          li.innerHTML = "<span>目标 " + fmt(t.target) + "°，摆出 " + fmt(t.response) + "°</span><em>" + how + "</em>";
+          els.log.appendChild(li);
+        });
+      }
+
+      function onPointerDown(event) {
+        if (state.locked || event.button > 0) return;
+        dragging = true;
+        els.svg.classList.add("dragging");
+        if (els.svg.setPointerCapture) els.svg.setPointerCapture(event.pointerId);
+        applyPointer(event);
+        event.preventDefault();
+      }
+
+      function onPointerMove(event) {
+        if (!dragging) return;
+        applyPointer(event);
+        event.preventDefault();
+      }
+
+      function onPointerUp(event) {
+        if (!dragging) return;
+        dragging = false;
+        els.svg.classList.remove("dragging");
+        if (els.svg.hasPointerCapture && els.svg.hasPointerCapture(event.pointerId)) {
+          els.svg.releasePointerCapture(event.pointerId);
+        }
+      }
+
+      function onKeyDown(event) {
+        if (event.key === "Enter") {
+          if (event.target && event.target.closest && event.target.closest("button")) return;
+          if (!state.locked) confirmAngle();
+          else newQuestion();
+          event.preventDefault();
+          return;
+        }
+        if (state.locked) return;
+        var step = event.shiftKey ? 5 : 1;
+        if (event.key === "ArrowUp" || event.key === "ArrowLeft") {
+          els.hint.textContent = "看起来对了就确认。确认前不会出现读数。";
+          setAngle(state.angle + step);
+          event.preventDefault();
+        } else if (event.key === "ArrowDown" || event.key === "ArrowRight") {
+          els.hint.textContent = "看起来对了就确认。确认前不会出现读数。";
+          setAngle(state.angle - step);
+          event.preventDefault();
+        }
+      }
+
+      layoutStatic();
+      renderStats();
+      newQuestion();
+
+      els.svg.addEventListener("pointerdown", onPointerDown);
+      els.svg.addEventListener("pointermove", onPointerMove);
+      els.svg.addEventListener("pointerup", onPointerUp);
+      els.svg.addEventListener("pointercancel", onPointerUp);
+      els.confirm.addEventListener("click", confirmAngle);
+      els.next.addEventListener("click", function () { newQuestion(); });
+      els.reset.addEventListener("click", function () {
+        state.trials = [];
+        renderStats();
+        newQuestion();
+      });
+      window.addEventListener("keydown", onKeyDown);
+    })();
+  </script>
+</body>
+</html>
