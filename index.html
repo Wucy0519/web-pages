@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>网页目录</title>
+<style>
+  :root {
+    --ink: #241c14;
+    --muted: #6d5c4d;
+    --paper: #fffaf3;
+    --bg: #e7dccb;
+    --line: #e3d3be;
+    --hot: #9d2c1a;
+    --gold: #a68445;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    color: var(--ink);
+    background:
+      radial-gradient(900px 420px at 0% -10%, #f8f1e4 0%, transparent 55%),
+      radial-gradient(700px 380px at 100% 0%, #f3e4cf 0%, transparent 50%),
+      var(--bg);
+    font-family: "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+    line-height: 1.6;
+  }
+  a { color: inherit; }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 36px 20px 64px; }
+  header {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    margin-bottom: 22px;
+  }
+  .seal {
+    width: 74px;
+    height: 74px;
+    border: 3px solid var(--hot);
+    color: var(--hot);
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-family: "Songti SC", "Noto Serif SC", "STSong", serif;
+    font-size: 30px;
+    letter-spacing: 0.12em;
+    transform: rotate(-8deg);
+    background: #fff7f2;
+    flex: 0 0 auto;
+  }
+  h1 {
+    margin: 0;
+    font-family: "Songti SC", "Noto Serif SC", "STSong", serif;
+    font-size: 36px;
+    letter-spacing: 0.08em;
+  }
+  .sub { margin: 6px 0 0; color: var(--muted); max-width: 640px; }
+  .board {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    gap: 16px;
+    align-items: start;
+  }
+  .panel {
+    background: rgba(255, 250, 243, 0.94);
+    border: 1px solid var(--line);
+    border-radius: 22px;
+    padding: 14px;
+  }
+  .label {
+    margin: 2px 6px 10px;
+    color: var(--gold);
+    letter-spacing: 0.16em;
+    font-size: 13px;
+  }
+  .level1 { display: flex; flex-direction: column; gap: 8px; }
+  .folder, .page {
+    text-align: left;
+    border: 1px solid var(--line);
+    background: #fff;
+    border-radius: 16px;
+    padding: 12px 14px;
+  }
+  .folder.on {
+    background: var(--ink);
+    color: #f6efe4;
+    border-color: var(--ink);
+  }
+  .folder small, .page small { display: block; color: var(--muted); font-size: 13px; margin-top: 2px; }
+  .folder.on small { color: #e7d7c4; }
+  .pages { display: flex; flex-direction: column; gap: 10px; }
+  a.page {
+    display: block;
+    text-decoration: none;
+  }
+  a.page:hover { border-color: var(--hot); transform: translateY(-1px); }
+  a.page strong {
+    font-family: "Songti SC", "Noto Serif SC", "STSong", serif;
+    font-size: 22px;
+    letter-spacing: 0.06em;
+  }
+  a.page span.enter {
+    float: right;
+    color: var(--hot);
+    letter-spacing: 0.08em;
+    font-size: 14px;
+    margin-top: 4px;
+  }
+  .empty { color: var(--muted); padding: 28px 8px; text-align: center; }
+  footer { margin-top: 22px; color: var(--muted); font-size: 13px; }
+  @media (max-width: 720px) {
+    .board { grid-template-columns: 1fr; }
+    h1 { font-size: 30px; }
+    .seal { width: 58px; height: 58px; font-size: 24px; }
+    .level1 { flex-direction: row; overflow: auto; }
+    .folder { min-width: 140px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="seal">目</div>
+    <div>
+      <h1>网页目录</h1>
+      <p class="sub">先点左边的一级目录，再点右边的二级页面。点「冷笑话大全」就会进入那一页。</p>
+    </div>
+  </header>
+  <div class="board">
+    <section class="panel">
+      <p class="label">一级目录</p>
+      <div class="level1" id="level1"></div>
+    </section>
+    <section class="panel">
+      <p class="label" id="level2-label">二级目录</p>
+      <div class="pages" id="level2"></div>
+    </section>
+  </div>
+  <footer>
+    <p>要再放一个网页，把文件放进对应文件夹，再在本页脚本的目录数据里加一条。</p>
+  </footer>
+</div>
+<script>
+const CATALOG = [
+  {
+    name: "娱乐",
+    note: "拿来消遣的页面",
+    pages: [
+      {
+        title: "冷笑话大全",
+        href: "lengxiaohua/index.html",
+        summary: "珍藏的放在最前。可以标好笑或不好笑，再把好笑的导出成 txt。"
+      }
+    ]
+  }
+];
+
+const level1 = document.getElementById("level1");
+const level2 = document.getElementById("level2");
+const level2Label = document.getElementById("level2-label");
+let current = 0;
+
+function render() {
+  level1.innerHTML = CATALOG.map((group, i) => `
+    <button class="folder${i === current ? " on" : ""}" type="button" data-index="${i}">
+      ${group.name}
+      <small>${group.pages.length} 个页面 · ${group.note}</small>
+    </button>
+  `).join("");
+  const group = CATALOG[current];
+  level2Label.textContent = "二级目录 · " + group.name;
+  if (!group.pages.length) {
+    level2.innerHTML = `<div class="empty">这个目录里还没有页面。</div>`;
+    return;
+  }
+  level2.innerHTML = group.pages.map(page => `
+    <a class="page" href="${page.href}">
+      <span class="enter">进入</span>
+      <strong>${page.title}</strong>
+      <small>${page.summary}</small>
+    </a>
+  `).join("");
+}
+
+level1.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-index]");
+  if (!button) return;
+  current = Number(button.dataset.index);
+  render();
+});
+
+render();
+</script>
+</body>
+</html>
