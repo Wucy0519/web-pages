@@ -146,14 +146,19 @@
   }
 
   a.back {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    z-index: 40;
     display: inline-flex;
     align-items: center;
     text-decoration: none;
     border-radius: 999px;
-    border: 1px solid var(--line);
-    background: #fff;
+    border: 1px solid var(--hot);
+    background: var(--hot);
+    color: #fffaf3;
     padding: 8px 14px;
-    color: var(--ink);
+    box-shadow: 0 8px 20px rgba(80, 30, 16, 0.18);
   }
   a.back:hover { transform: translateY(-1px); }
 
@@ -167,6 +172,7 @@
 </style>
 </head>
 <body>
+<a class="back" href="../index.html">返回主界面</a>
 <div class="wrap">
   <header class="top">
     <div class="brand">
@@ -179,7 +185,6 @@
     <div class="stats" id="stats"></div>
     <div class="bar" aria-hidden="true"><span id="bar"></span></div>
     <div class="toolbar">
-      <a class="back" href="../index.html">返回目录</a>
       <button class="chip" data-mode="one" type="button">逐条筛选</button>
       <button class="chip" data-mode="list" type="button">列表浏览</button>
       <input id="q" type="search" placeholder="搜索发言" autocomplete="off" />
