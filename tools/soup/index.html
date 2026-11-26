@@ -1,0 +1,1166 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#3a2412">
+<title>鸡汤之书</title>
+<style>
+  :root {
+    --page-w: min(300px, 40vw, max(150px, calc((100dvh - 248px) / 1.46)));
+    --page-h: calc(var(--page-w) * 1.46);
+    --ink: #2a2118;
+    --gold: #e6c98a;
+    --leather: #6d4018;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    min-height: 100%;
+  }
+
+  body {
+    min-height: 100dvh;
+    overflow-x: hidden;
+    overscroll-behavior: none;
+    color: #f3e6d2;
+    font-family: "Songti SC", "STSong", "Noto Serif SC", "Source Han Serif SC", "PMingLiU", "SimSun", Palatino, "Palatino Linotype", serif;
+    background-color: #120c09;
+    background-image:
+      radial-gradient(ellipse 46% 34% at 50% 40%, rgba(255, 196, 138, 0.16), transparent 70%),
+      radial-gradient(ellipse 80% 55% at 50% 108%, rgba(0, 0, 0, 0.55), transparent 52%),
+      linear-gradient(180deg, #4a3022 0%, #2a1a12 30%, #16100c 70%, #0c0907 100%);
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(ellipse at center, transparent 36%, rgba(0, 0, 0, 0.46) 100%);
+  }
+
+  .stage {
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 26px;
+    padding:
+      max(18px, env(safe-area-inset-top))
+      max(16px, env(safe-area-inset-right))
+      max(26px, env(safe-area-inset-bottom))
+      max(16px, env(safe-area-inset-left));
+  }
+
+  .viewport {
+    perspective: 2200px;
+    perspective-origin: 50% 42%;
+    padding-bottom: 18px;
+  }
+
+  .scene {
+    position: relative;
+    width: calc(var(--page-w) * 2);
+    height: var(--page-h);
+    transform-style: preserve-3d;
+    -webkit-transform-style: preserve-3d;
+    --shift: calc(var(--page-w) * -0.5);
+    --tilt: 7deg;
+    transform: translateX(var(--shift)) rotateX(var(--tilt));
+  }
+
+  .floor-shadow {
+    position: absolute;
+    left: 50%;
+    bottom: -7%;
+    width: 34%;
+    height: 8%;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.42);
+    box-shadow: 0 16px 28px 10px rgba(0, 0, 0, 0.28);
+    transform: translateX(calc(-50% + var(--page-w) / 2)) translateZ(-42px);
+    pointer-events: none;
+  }
+
+  .spread {
+    position: absolute;
+    inset: 0;
+    transform-style: preserve-3d;
+    -webkit-transform-style: preserve-3d;
+  }
+
+  .under, .leaf {
+    position: absolute;
+    top: 0;
+    height: 100%;
+  }
+
+  .under.left {
+    left: 0;
+    width: var(--page-w);
+    visibility: hidden;
+    background: #f3e7d6;
+    pointer-events: none;
+  }
+
+  .under.right {
+    left: var(--page-w);
+    width: var(--page-w);
+    z-index: 1;
+    touch-action: none;
+  }
+
+  .leaf {
+    left: var(--page-w);
+    width: var(--page-w);
+    transform-style: preserve-3d;
+    -webkit-transform-style: preserve-3d;
+    transform-origin: left center;
+    transform: rotateY(0deg);
+    will-change: transform;
+  }
+
+  .leaf.cover { z-index: 4; cursor: pointer; touch-action: none; }
+  body.is-open .leaf.cover { cursor: default; }
+  .leaf.paper { z-index: 6; visibility: hidden; }
+
+  .gutter {
+    position: absolute;
+    top: -1%;
+    bottom: -1%;
+    left: calc(var(--page-w) - 14px);
+    width: 28px;
+    z-index: 5;
+    pointer-events: none;
+    visibility: hidden;
+    background: linear-gradient(90deg,
+      rgba(70, 40, 16, 0) 0%,
+      rgba(70, 40, 16, 0.1) 28%,
+      rgba(42, 22, 10, 0.34) 50%,
+      rgba(70, 40, 16, 0.1) 72%,
+      rgba(70, 40, 16, 0) 100%);
+    transform: translateZ(2px);
+  }
+
+  body.is-open .gutter { visibility: visible; }
+  .leaf.paper.is-on { visibility: visible; }
+  body.is-open .under.right { cursor: grab; }
+  body.is-dragging, body.is-dragging * { cursor: grabbing !important; }
+
+  .face {
+    position: absolute;
+    inset: 0;
+    border-radius: 2px 8px 8px 2px;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+
+  .face.front { transform: rotateY(0deg); }
+  .face.back { transform: rotateY(180deg); pointer-events: none; }
+
+  .paper-bg {
+    background-color: #f4ebdd;
+    background-image:
+      radial-gradient(120% 80% at 0% 0%, rgba(255, 255, 255, 0.7), transparent 46%),
+      radial-gradient(90% 70% at 100% 100%, rgba(176, 132, 78, 0.14), transparent 52%),
+      linear-gradient(180deg, #fbf6ee 0%, #f3e6d4 100%);
+  }
+
+  .leaf.paper .face.front,
+  #rightSheet {
+    box-shadow: inset 18px 0 18px -16px rgba(70, 36, 14, 0.28);
+  }
+
+  .face.back.paper-bg {
+    box-shadow: inset 18px 0 20px -16px rgba(70, 36, 14, 0.3);
+  }
+
+  .leather {
+    color: var(--gold);
+    background-color: var(--leather);
+    background-image:
+      radial-gradient(120% 70% at 18% 0%, rgba(255, 226, 170, 0.28), transparent 36%),
+      radial-gradient(80% 70% at 90% 100%, rgba(0, 0, 0, 0.34), transparent 46%),
+      linear-gradient(165deg, #c4843a 0%, #8a5420 42%, #5c3814 76%, #3a220c 100%);
+    box-shadow:
+      inset 0 0 48px rgba(0, 0, 0, 0.28),
+      inset 0 0 0 1px rgba(255, 220, 180, 0.14);
+  }
+
+  .leather-sheen {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      linear-gradient(115deg, rgba(255, 255, 255, 0.16), transparent 28% 68%, rgba(0, 0, 0, 0.2));
+  }
+
+  .cover-plate {
+    position: absolute;
+    inset: 8.5%;
+    z-index: 1;
+    border: 1px solid rgba(230, 201, 138, 0.72);
+    box-shadow:
+      inset 0 0 0 4px rgba(70, 40, 16, 0.2),
+      inset 0 0 0 5px rgba(230, 201, 138, 0.38);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 8% 6%;
+  }
+
+  .ornament { width: 46%; height: 14px; display: block; }
+  .ornament path { fill: none; stroke: currentColor; stroke-width: 1.15; }
+  .ornament path.gem { fill: currentColor; stroke: none; }
+
+  .cover-plate h1 {
+    margin: 2% 0 0;
+    font-size: clamp(26px, calc(var(--page-w) * 0.155), 50px);
+    font-weight: 700;
+    line-height: 1.22;
+    letter-spacing: 0.46em;
+    padding-left: 0.46em;
+    white-space: nowrap;
+    background: linear-gradient(180deg, #fff6d8 0%, #f0d48a 30%, #c4964a 54%, #f8e7b4 76%, #a67c3d 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: #f0d48a;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .cover-en {
+    margin: 2.5% 0 0;
+    font-family: Palatino, "Palatino Linotype", "Songti SC", serif;
+    font-size: clamp(9px, calc(var(--page-w) * 0.034), 12px);
+    letter-spacing: 0.42em;
+    padding-left: 0.42em;
+    text-transform: uppercase;
+    color: rgba(230, 201, 138, 0.72);
+  }
+
+  .cover-hint {
+    margin: 9% 0 0;
+    font-size: clamp(13px, calc(var(--page-w) * 0.052), 17px);
+    line-height: 1.75;
+    letter-spacing: 0.2em;
+    padding-left: 0.2em;
+    color: rgba(243, 226, 196, 0.84);
+  }
+
+  .ribbon {
+    position: absolute;
+    top: 0;
+    right: 14%;
+    width: 6.2%;
+    height: 23%;
+    z-index: 3;
+    background: linear-gradient(90deg, #8a4e16, #e7b15a 48%, #a86422);
+  }
+
+  .ribbon::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 100%;
+    width: 100%;
+    height: 12px;
+    background:
+      linear-gradient(to bottom right, #8a4e16 50%, transparent 50%) left / 50% 100% no-repeat,
+      linear-gradient(to bottom left, #c4843a 50%, transparent 50%) right / 50% 100% no-repeat;
+  }
+
+  .endpaper { position: absolute; inset: 0; }
+  .ep-frame {
+    position: absolute;
+    inset: 6.5%;
+    border: 1px solid rgba(164, 122, 64, 0.48);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .ep-frame::before {
+    content: "";
+    position: absolute;
+    inset: 5px;
+    border: 1px solid rgba(164, 122, 64, 0.28);
+    pointer-events: none;
+  }
+  .fleur {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #a68448;
+  }
+  .fleur .line {
+    display: block;
+    width: calc(var(--page-w) * 0.1);
+    height: 1px;
+    background: currentColor;
+  }
+  .fleur .gem {
+    display: block;
+    width: 5px;
+    height: 5px;
+    background: currentColor;
+    transform: rotate(45deg);
+  }
+
+  #rightSheet { position: absolute; inset: 0; z-index: 1; }
+
+  .sheet {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 14% 12% 16%;
+    color: var(--ink);
+  }
+
+  .under.right::before,
+  .leaf.paper .face.front::before {
+    content: "";
+    position: absolute;
+    inset: 5.5%;
+    border: 1px solid rgba(158, 116, 62, 0.36);
+    pointer-events: none;
+  }
+
+  .sheet > .fleur:first-of-type { margin-bottom: 8%; }
+  .sheet > .fleur:last-of-type { margin-top: 8%; }
+
+  .sheet-answer {
+    margin: 0;
+    max-width: 100%;
+    text-wrap: balance;
+    font-weight: 600;
+  }
+
+  .sheet-answer.is-short {
+    font-size: clamp(26px, calc(var(--page-w) * 0.16), 50px);
+    letter-spacing: 0.22em;
+    padding-left: 0.22em;
+    line-height: 1.35;
+  }
+
+  .sheet-answer.is-mid {
+    font-size: clamp(20px, calc(var(--page-w) * 0.108), 34px);
+    letter-spacing: 0.1em;
+    padding-left: 0.1em;
+    line-height: 1.55;
+  }
+
+  .sheet-answer.is-long {
+    font-size: clamp(15px, calc(var(--page-w) * 0.07), 23px);
+    letter-spacing: 0.03em;
+    line-height: 1.62;
+  }
+
+  .sheet-num {
+    position: absolute;
+    top: 8%;
+    left: 0;
+    right: 0;
+    margin: 0;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    font-size: clamp(11px, calc(var(--page-w) * 0.04), 14px);
+    letter-spacing: 0.28em;
+    padding-left: 0.28em;
+    color: rgba(96, 66, 34, 0.62);
+  }
+
+  .dogear {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: 34px;
+    height: 34px;
+    background: linear-gradient(135deg, transparent 50%, rgba(150, 110, 70, 0.16) 50%, #f7f0e4 58%);
+    pointer-events: none;
+  }
+
+  #rightSheet .dogear { display: none; }
+
+  .fore-edge {
+    position: absolute;
+    top: 2px;
+    bottom: 2px;
+    left: 100%;
+    width: 8px;
+    z-index: 3;
+    border-radius: 0 3px 3px 0;
+    pointer-events: none;
+    background: repeating-linear-gradient(
+      to bottom,
+      #f7f1e6 0px,
+      #f7f1e6 1px,
+      #e3d4be 1px,
+      #e3d4be 2px
+    );
+    box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.45), 2px 1px 3px rgba(0, 0, 0, 0.22);
+  }
+
+  .shade {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    opacity: 0;
+    background: linear-gradient(90deg, rgba(48, 24, 10, 0.42), rgba(48, 24, 10, 0) 46%);
+  }
+
+  .leaf.paper .face::after,
+  .leaf.cover .face.front::after,
+  .leaf.cover .face.back::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .leaf.paper .face.front::after {
+    opacity: var(--shade, 0);
+    background: linear-gradient(90deg,
+      rgba(48, 24, 8, 0.5) 0%,
+      rgba(48, 24, 8, 0.05) 26%,
+      rgba(255, 250, 240, 0) 58%,
+      rgba(255, 252, 246, 0.62) 100%);
+  }
+
+  .leaf.paper .face.back::after {
+    opacity: var(--shade, 0);
+    background: linear-gradient(270deg,
+      rgba(48, 24, 8, 0.42) 0%,
+      rgba(48, 24, 8, 0) 34%,
+      rgba(255, 252, 246, 0.4) 100%);
+  }
+
+  .leaf.cover .face.front::after {
+    opacity: var(--shade, 0);
+    background: linear-gradient(90deg,
+      rgba(0, 0, 0, 0.28) 0%,
+      rgba(0, 0, 0, 0) 30%,
+      rgba(255, 230, 190, 0.18) 100%);
+  }
+
+  .leaf.cover .face.back::after {
+    opacity: var(--cast, 0);
+    background: linear-gradient(90deg, transparent 42%, rgba(40, 18, 8, 0.5) 100%);
+  }
+
+  .controls {
+    position: relative;
+    z-index: 2;
+    width: min(440px, 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .flip-btn, .ghost-btn { font: inherit; }
+
+  .flip-btn {
+    appearance: none;
+    -webkit-appearance: none;
+    border: 1px solid rgba(255, 236, 210, 0.5);
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0) 42%),
+      linear-gradient(180deg, #f8edd9, #e6d0aa);
+    color: #3a2416;
+    font-size: 16px;
+    letter-spacing: 0.34em;
+    text-indent: 0.34em;
+    padding: 14px 32px 15px;
+    border-radius: 999px;
+    cursor: pointer;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.8),
+      0 10px 24px rgba(0, 0, 0, 0.28);
+    transition: transform 0.22s ease, box-shadow 0.22s ease, opacity 0.22s ease;
+  }
+
+  .flip-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.85),
+      0 16px 30px rgba(0, 0, 0, 0.32);
+  }
+
+  .flip-btn:active:not(:disabled) { transform: translateY(0); }
+
+  .flip-btn:disabled {
+    cursor: default;
+    opacity: 0.55;
+  }
+
+  .flip-btn:focus-visible, .ghost-btn:focus-visible {
+    outline: 2px solid #e6c98a;
+    outline-offset: 4px;
+  }
+
+  .ghost-btn {
+    appearance: none;
+    background: none;
+    border: none;
+    color: rgba(232, 214, 188, 0.62);
+    letter-spacing: 0.28em;
+    text-indent: 0.28em;
+    font-size: 13px;
+    padding: 4px 10px;
+    cursor: pointer;
+  }
+
+  .ghost-btn:hover:not(:disabled) { color: rgba(248, 236, 214, 0.92); }
+  .ghost-btn:disabled { cursor: default; opacity: 0.35; }
+
+  body:not(.is-open) .ghost-btn {
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  .hint, .keys { margin: 0; text-align: center; }
+  .hint {
+    min-height: 1.5em;
+    font-size: 14px;
+    letter-spacing: 0.16em;
+    color: rgba(243, 230, 210, 0.8);
+  }
+  .keys {
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    color: rgba(232, 214, 188, 0.4);
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  ::selection { background: rgba(176, 132, 72, 0.28); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .flip-btn, .ghost-btn { transition: none; }
+  }
+</style>
+</head>
+<body><style>
+a.catalog-back{position:fixed;top:12px;left:12px;z-index:9999;display:inline-flex;align-items:center;padding:6px 12px;border-radius:999px;background:#9d2c1a;color:#fffaf3;border:1px solid #9d2c1a;text-decoration:none;font:14px/1.4 "PingFang SC","Hiragino Sans GB","Noto Sans SC",sans-serif;box-shadow:0 8px 20px rgba(80,30,16,.18)}
+a.catalog-back:hover{filter:brightness(1.05)}
+</style>
+<a class="catalog-back" href="../../index.html">返回主界面</a>
+
+  <div class="stage">
+    <div class="viewport" aria-hidden="true">
+      <div class="scene" id="scene">
+        <div class="floor-shadow" id="floorShadow"></div>
+        <div class="spread">
+          <div class="under left paper-bg" id="leftUnder"></div>
+          <div class="under right paper-bg" id="rightUnder">
+            <div id="rightSheet"></div>
+            <i class="dogear" aria-hidden="true"></i>
+            <i class="fore-edge"></i>
+            <i class="shade" id="rightShade"></i>
+          </div>
+          <div class="leaf cover" id="cover">
+            <div class="face front leather" id="coverFront">
+              <div class="leather-sheen"></div>
+              <div class="cover-plate">
+                <svg class="ornament" viewBox="0 0 120 16" aria-hidden="true">
+                  <path d="M6 8 H48"></path>
+                  <path d="M72 8 H114"></path>
+                  <path class="gem" d="M60 2.2 L64.8 8 L60 13.8 L55.2 8 Z"></path>
+                </svg>
+                <h1>鸡汤<br>之书</h1>
+                <p class="cover-en">Warmth</p>
+                <p class="cover-hint">心里发凉时<br>翻开这一页</p>
+              </div>
+              <div class="ribbon"></div>
+            </div>
+            <div class="face back paper-bg" id="coverBack">
+              <div class="endpaper">
+                <div class="ep-frame">
+                  <div class="fleur"><span class="line"></span><span class="gem"></span><span class="line"></span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="gutter" aria-hidden="true"></div>
+          <div class="leaf paper" id="paper">
+            <div class="face front paper-bg" id="paperFront"></div>
+            <div class="face back paper-bg" id="paperBack"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button type="button" class="flip-btn" id="flipBtn">翻开书页</button>
+      <button type="button" class="ghost-btn" id="closeBtn" disabled>合上书</button>
+      <p class="hint" id="hint">想被暖一下，就翻开一页</p>
+      <p class="keys">拖动页角，或按空格 · Esc 合上</p>
+    </div>
+  </div>
+  <p class="sr-only" id="live" aria-live="polite"></p>
+
+<script>
+(function () {
+  "use strict";
+
+  var PAGES = [
+    "你会好的", "别放弃", "慢慢来", "你很棒",
+    "值得被爱", "今天也辛苦了", "抱抱自己", "先深呼吸",
+    "一切都会过去", "你不是一个人", "想，全是问题；做，才有答案", "你有多自律，就有多自由",
+    "所有难过，难是难，但总会过", "把行动交给现在，把结果交给时间", "有输得起的勇气，才有赢得到的底气", "你自己不放弃，别人才帮得上你",
+    "热爱生活，生活会回应你", "做三四月的事，八九月有答案", "多一分坚持，少一分遗憾", "难走的路，往往是向上的路",
+    "想成为谁，就靠近那样的人", "迈出第一步，是焦虑的解药", "有风有雨是常态，迎上去才能翻盘", "读书是最便宜的远行",
+    "迷茫多半是想多了、做少了", "努力自己，比仰望别人有用", "能打败你的，只有下一秒的自己", "躲起来的星星也在发光",
+    "焦虑消不了明天的悲伤，只会耗掉今天", "从外打破是压力，从内打破是成长", "困住你的常常不是难，是你的负面暗示", "失望和希望，常走在同一条路上",
+    "你不提前倒下，就没人打得败你", "在哪里付出，就在哪里发光", "不是看见成功才坚持，是坚持才看见", "人生如浪潮，触底是为了反弹",
+    "比失败多站起来一次，就是成功", "事情推进一步，迷茫就少一分", "能力决定走多快，人品决定走多远", "别只欣赏别人的花，忘了自己的香",
+    "长成向日葵，才接得住阳光", "从容是本事修来的", "愿你历经风霜，仍走自己的路", "坚持和奋斗，本身就有意义",
+    "闪光的背后，都是默默使劲", "接纳不完美，是一生的功课", "柠檬来了，就榨成柠檬汁", "能推翻偏见的人，只有你自己",
+    "心放宽，风景才不同", "自律的苦，会把日子酿甜", "把平凡日子过得热气腾腾", "失意只是插曲，回头看会变成财富",
+    "别怕一次选择改写一生，你推得倒重来", "没有完美人生，但你可以更好", "有梦想的人，知道下一步踩在哪", "好书未必立刻成功，但会让你更好",
+    "愿你扛得住事，也翻得了篇", "从容都是厚积薄发", "一次次努力，会把你长成你期待的样子", "你才是自己人生的主角",
+    "多一项本事，就多一条出路", "人品是底子，行为是面子", "比别人多下的功夫，会变成光", "你在哪里付出，就在哪里收获",
+    "你翻山越岭时，大地往往沉默", "传奇不过是普通人把心意做成了行动", "舍得，是选择里的勇气", "登高的人，多半是后天全力以赴",
+    "有知识在心里，是灵魂最好的妆", "真正的高度，是跌下去还能弹起来", "能坚持别人坚持不了的，才会拥有别人没有的", "夜以继日的日子，会养成追梦的力气",
+    "愿意陪你哭的人，格外珍贵", "改变命运的机会，此刻也在", "你一开始想、一开始做，就已经在路上了", "生命因沉淀而厚，因打磨而亮",
+    "时间很公平，日复一日才叫坚持", "那些很难的坚持，成就了更好的你", "决定命运的，是你还想不想进步", "没有谁一帆风顺，路都是自己摸出来的",
+    "别灰心，明天才有下一章", "你可以走错，但别忘了要去的地方", "容得下人，世界也会温柔待你", "顺的时候清空自己，逆的时候提醒自己",
+    "沉得住气的日复一日，终会显出意义", "没人能替你长大，伞要自己撑", "读过的书，会在未来铺路", "才华还撑不起梦想时，就静下来学",
+    "能力还驾驭不了目标时，就沉下去练", "你向往哪里，就朝那里走", "只要不认输，就没有什么挡得住", "厉害的人，也能在喧嚣里种一园安静",
+    "少年可以晚成，耐心本身就是路", "山重水复走完，自有柳暗花明", "成才不一定最快，但要有屡败屡战的韧", "进一寸，就有一寸的欢喜",
+    "见过天地之大，才走得稳", "不是天气，不是运气，是我不放弃", "弱小和勇敢同时出现，叫坚韧", "生活出难题，我就说：可以",
+    "眼泪往下流，人往上走", "重要的不是你在哪，是你要去哪", "命是弱者的借口，运是强者的谦辞", "我的勇气总比困难多一点",
+    "这跌跌撞撞的人生，像不像在跳舞", "幸福是持续收集微小的雀跃", "晴朗的你，能推开云", "人生如太阳，有起有落，不失光",
+    "结局不好，多半是还没到结局", "春会来，事会顺，花会开", "这也许是糟糕的一天，不是糟糕的一生", "走走停停，或雨或晴，都是风景",
+    "尽我所能，也敬我所不能", "还没看见结果的日子，叫扎根", "我可以踌躇，但不会停", "抬头时，大树会抱你",
+    "我听见自己向上的声音", "辛苦一点，也要过滚烫的人生", "你只管努力，剩下的交给时间", "发光的不是梦想，是追梦的你",
+    "所谓奇迹，不过是努力换了名字", "执行力，就是跳过情绪去做事", "没有天赋，就一直重复", "人生缓缓，自有答案",
+    "会焦虑，是因为你有做成它的实力", "不赶浪，不搭船，我自己有海", "有事放松，无事放空", "给时间一点时间",
+    "求满几时满，知止才为止", "去见山，去见海，也去见自己", "每个年纪的我，都刚刚好", "我信缓慢、平和、细水长流",
+    "若现在肯努力，最坏也不过大器晚成", "路的尽头，是温柔和月光", "眼里有光，心中有爱", "想得开，很多事就不是事",
+    "别人越瞧不上，你越要长出成绩", "生活像天气，有晴有雨，简单过", "强大不是征服，是承受", "难熬的日子会过去，你已经熬过很多",
+    "学着慢，学着等，一步一个脚印", "偷偷努力，成为别人的光", "不起眼的日复一日，会忽然显出意义", "觉得难，说明你在走上坡",
+    "不是看见希望才坚持，是坚持才看见希望", "有的坚持，能从冰里开出花", "停下来是低谷，走下去是上坡", "至少有一个梦想，让你愿意坚强",
+    "你可以一无所有，不能一无是处", "抱怨黑暗，不如提灯前行", "绝处也能逢生，只要你还在长", "没人嘲笑竭尽全力的人",
+    "有付出，就会有回声", "生活很苦，也别放下爱", "主动付出，才有果实", "想要的不会轻易来，所以才要努力",
+    "人生没有白走的路，每一步都算数", "觉得晚了的时候，往往才刚开始", "能走到最后的人，本来就不多", "走得慢没关系，别停",
+    "优秀的人，都有一段沉默的时光", "与其在别人的戏里跑龙套，不如做自己的主角", "生活不如意时，你可以选心态", "真正的强者，含着泪也在跑",
+    "最大的失败，是跌倒后不肯再站起来", "梦想要有，更要动身", "时间奖赏珍惜它的人", "磨难常常是包得很丑的礼物",
+    "别和人比幸运，要比谁还在坚持", "说到和做到之间，是最远的路", "成功从决定去做的那一刻就开始累加", "少计较一点，就少错过一点",
+    "别等完美时机，现在就是", "日子如茶，不会苦一辈子", "真正的富有，是心里丰盈", "智慧是把简单道理做出来",
+    "要保持平衡，就得一直往前", "成熟是肯为自己的选择负责", "位置不重要，方向重要", "失败不是终结，勇气才是",
+    "风浪里也可以把船扶稳", "追的过程里，你会遇见自己", "二十四小时人人一样，用法不一样", "最大的对手，是懒、拖和借口",
+    "你对生活笑，生活就软一点", "从不尝试，才是最大的失败", "抱怨改变不了任何事", "挫折是必修课",
+    "与其羡慕，不如学，然后走自己的路", "别为打翻的牛奶哭", "脚踏实地，比仰望有用", "认真的人，时间不会亏待",
+    "健康是一切的底", "该走的弯路，一步都不会少，但你能走快一点出来", "舒适区最危险", "人生如四季，春种秋收就好",
+    "平淡里也有光", "孝顺是陪伴，不是表演", "父母在，人生还有来处", "最不能等的，是对父母好",
+    "父母的爱像空气，失去才觉得贵", "嘘寒问暖，就是最好的孝", "父母要的常常只是你平安", "树欲静而风不止，子欲养而亲不待",
+    "让父母以你为荣，而不是为你愁", "看淡了，天地就宽", "放下了，脚步就轻", "缘分如风，别拧",
+    "心若计较，路全是刺；心若放宽，天就是晴", "粗茶淡饭，也很养人", "幸福常常是细水长流", "知足是财富，贪是贫穷",
+    "心若知足，淡饭也香", "烦恼像影子，你追它就缠", "不是世界太吵，是心不够静", "境由心生",
+    "昨日已去，明日未至，好好过今天", "花开堪折直须折", "酸甜苦辣，都是馈赠", "咽得下苦，才配得上甜",
+    "开口容易，闭嘴是修行", "看破不说破，是修养", "管住嘴，不是软弱", "持续朝阳光走，影子就在身后",
+    "己所不欲，勿施于人", "帮人的人，心里更容易暖", "指着别人时，记得还有四根指向自己", "与其埋怨别人冷，不如自己先暖",
+    "痛苦分开就减半，快乐分享就加倍", "假如生活亏待了你，看远、看宽、看淡", "知足常乐，别过度攀比", "不是看到希望才坚持，是坚持才看到希望",
+    "秋天的果子，属于春天耕耘的人", "你的魅力在心安和灵魂干净", "打开窗，阳光进来；打开心，温暖进来", "人之所以躁，多是求不得、舍不得、攀不得",
+    "多一分理解，少一分误会", "快乐的开关在自己手里", "天行健，君子以自强不息", "地势坤，君子以厚德载物",
+    "先天下之忧而忧，后天下之乐而乐", "理想是彼岸，行动是桥", "千里之行，始于足下", "九层之台，起于累土",
+    "合抱之木，生于毫末", "宝剑锋从磨砺出", "梅花香自苦寒来", "不经一番寒彻骨，怎得梅花扑鼻香",
+    "山重水复疑无路，柳暗花明又一村", "长风破浪会有时", "直挂云帆济沧海", "天生我材必有用",
+    "海内存知己，天涯若比邻", "莫愁前路无知己", "欲穷千里目，更上一层楼", "会当凌绝顶，一览众山小",
+    "业精于勤荒于嬉", "学而不思则罔，思而不学则殆", "三人行，必有我师", "温故而知新",
+    "知之者不如好之者，好之者不如乐之者", "吾日三省吾身", "己欲立而立人，己欲达而达人", "君子坦荡荡",
+    "静以修身，俭以养德", "非淡泊无以明志，非宁静无以致远", "盛年不重来，一日难再晨", "及时当勉励，岁月不待人",
+    "黑发不知勤学早，白首方悔读书迟", "书山有路勤为径", "学海无涯苦作舟", "读万卷书，行万里路",
+    "纸上得来终觉浅，绝知此事要躬行", "问渠那得清如许，为有源头活水来", "不积跬步，无以至千里", "不积小流，无以成江海",
+    "锲而不舍，金石可镂", "青，取之于蓝而青于蓝", "博学之，审问之，慎思之，明辨之，笃行之", "有志者事竟成",
+    "精诚所至，金石为开", "失败是成功之母", "吃一堑，长一智", "满招损，谦受益",
+    "三人行必有师，择其善者而从", "海纳百川，有容乃大", "壁立千仞，无欲则刚", "宠辱不惊，看庭前花开花落",
+    "去留无意，望天上云卷云舒", "天生一个仙人洞，无限风光在险峰", "世上无难事，只要肯登攀", "自信人生二百年，会当水击三千里",
+    "雄关漫道真如铁，而今迈步从头越", "俱往矣，数风流人物，还看今朝", "路漫漫其修远兮，吾将上下而求索", "亦余心之所善兮，虽九死其犹未悔",
+    "老骥伏枥，志在千里", "烈士暮年，壮心不已", "采菊东篱下，悠然见南山", "此中有真意，欲辨已忘言",
+    "行到水穷处，坐看云起时", "明月松间照，清泉石上流", "莫愁前路无知己，天下谁人不识君", "谁言寸草心，报得三春晖",
+    "慈母手中线，游子身上衣", "临行密密缝，意恐迟迟归", "野火烧不尽，春风吹又生", "离离原上草，一岁一枯荣",
+    "沉舟侧畔千帆过，病树前头万木春", "千淘万漉虽辛苦，吹尽狂沙始到金", "春风得意马蹄疾，一日看尽长安花", "仰天大笑出门去，我辈岂是蓬蒿人",
+    "人生自古谁无死，留取丹心照汗青", "臣心一片磁针石，不指南方不肯休", "零落成泥碾作尘，只有香如故", "古人学问无遗力，少壮工夫老始成",
+    "夜来一笑寒灯下，始是金丹换骨时", "众里寻他千百度", "蓦然回首，那人却在，灯火阑珊处", "稻花香里说丰年，听取蛙声一片",
+    "青山遮不住，毕竟东流去", "生当作人杰，死亦为鬼雄", "至今思项羽，不肯过江东", "知己一人，胜过千军",
+    "真正的朋友，是你低落时还在的人", "善意不用声张，它自己会发芽", "把温柔留给世界，世界会还你", "今天的光，是昨天没放弃的你",
+    "允许自己慢，但不允许自己停", "你已经比昨天更靠近光了", "休息不是后退，是为了走得更远", "对自己好一点，不是自私",
+    "哭完就擦干，路还在", "被误解时，先把自己活明白", "善良要有锋芒，也要有边界", "你值得被认真对待",
+    "爱自己，是所有爱的起点", "把期待放回自己身上", "做不完没关系，先做完这一小步", "比较是偷走快乐的贼",
+    "你的节奏，不必跟别人对齐", "低谷是转弯，不是终点", "黑夜再长，也盖不住天亮", "你种下的好，会在某天开花",
+    "把抱怨换成行动，心里就亮一寸", "被需要是幸福，被善待是福气", "家人安好，就是最大的底气", "把饭吃好，把觉睡够，就是对自己的慈悲",
+    "情绪来了就让它走，别留它过夜", "你不完美，但你完整", "世界很大，你也很重要", "先成为光，再去照人",
+    "温柔而有力量", "稳一点，再热一点", "日子会奖励认真生活的人", "你走过的弯路，都算学费",
+    "别和小确幸错过", "抬头看看天，它一直在", "有人等你回家，就是光", "把今天过热乎",
+    "你笑的时候，运气也会靠近", "心软不是错，心硬要有度", "放过自己，也是一种勇气", "下次更好",
+    "这一页，是给你的暖", "合上书，去喝一杯热的", "合上书，去拥抱该抱的人"
+  ];
+
+  var scene = document.getElementById("scene");
+  var floorShadow = document.getElementById("floorShadow");
+  var leftUnder = document.getElementById("leftUnder");
+  var rightUnder = document.getElementById("rightUnder");
+  var rightSheet = document.getElementById("rightSheet");
+  var rightShade = document.getElementById("rightShade");
+  var cover = document.getElementById("cover");
+  var coverBack = document.getElementById("coverBack");
+  var paper = document.getElementById("paper");
+  var paperFront = document.getElementById("paperFront");
+  var paperBack = document.getElementById("paperBack");
+  var flipBtn = document.getElementById("flipBtn");
+  var closeBtn = document.getElementById("closeBtn");
+  var hint = document.getElementById("hint");
+  var live = document.getElementById("live");
+
+  var state = "closed";
+  var busy = false;
+  var pageW = 300;
+  var coverAngle = 0;
+  var paperAngle = 0;
+  var order = [];
+  var cursor = 0;
+  var last = -1;
+  var pending = null;
+  var current = null;
+  var motionGen = 0;
+  var veil = false;
+
+  paperBack.innerHTML = coverBack.innerHTML;
+
+  function motionOff() {
+    return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  }
+
+  function clamp(n, a, b) {
+    return Math.max(a, Math.min(b, n));
+  }
+
+  function measure() {
+    pageW = rightUnder.offsetWidth || pageW || 280;
+  }
+
+  function makeFleur() {
+    var el = document.createElement("div");
+    el.className = "fleur";
+    el.innerHTML = '<span class="line"></span><span class="gem"></span><span class="line"></span>';
+    return el;
+  }
+
+  function fillSheet(host, item) {
+    host.replaceChildren();
+    if (!item) return;
+    var len = item.text.length;
+    var tone = len <= 4 ? "is-short" : len <= 8 ? "is-mid" : "is-long";
+    var sheet = document.createElement("div");
+    sheet.className = "sheet";
+    var answer = document.createElement("p");
+    answer.className = "sheet-answer " + tone;
+    answer.textContent = item.text;
+    var num = document.createElement("p");
+    num.className = "sheet-num";
+    num.textContent = String(item.page);
+    var dog = document.createElement("i");
+    dog.className = "dogear";
+    dog.setAttribute("aria-hidden", "true");
+    sheet.append(makeFleur(), answer, makeFleur(), num, dog);
+    host.append(sheet);
+  }
+
+  function clearSheet(host) {
+    host.replaceChildren();
+  }
+
+  function refill() {
+    order = PAGES.map(function (_, i) { return i; });
+    for (var i = order.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = order[i];
+      order[i] = order[j];
+      order[j] = tmp;
+    }
+    if (order.length > 1 && order[0] === last) {
+      var swap = order[0];
+      order[0] = order[1];
+      order[1] = swap;
+    }
+    cursor = 0;
+  }
+
+  function peek() {
+    if (cursor >= order.length) refill();
+    var index = order[cursor];
+    return { text: PAGES[index], page: index + 1 };
+  }
+
+  function commit() {
+    if (cursor >= order.length) return;
+    last = order[cursor];
+    cursor += 1;
+  }
+
+  function arm() {
+    if (!pending) pending = peek();
+    fillSheet(rightSheet, pending);
+  }
+
+  function announce(item) {
+    live.textContent = "第" + item.page + "页，" + item.text;
+  }
+
+  function setBusy(value) {
+    busy = value;
+    document.body.classList.toggle("is-busy", value);
+    flipBtn.disabled = value;
+    closeBtn.disabled = value || state !== "open";
+  }
+
+  function veilOf(angle) {
+    if (angle <= 84) return 0;
+    if (angle >= 130) return 1;
+    var t = (angle - 84) / 46;
+    return t * t * (3 - 2 * t);
+  }
+
+  function paintVeil(angle) {
+    if (!veil) return;
+    rightSheet.style.opacity = veilOf(angle).toFixed(3);
+  }
+
+  function beginVeil() {
+    veil = true;
+    rightSheet.style.opacity = "0";
+  }
+
+  function endVeil() {
+    veil = false;
+    rightSheet.style.opacity = "1";
+  }
+
+  function applyCover(angle) {
+    coverAngle = angle;
+    var open = angle / 180;
+    var lift = Math.sin(open * Math.PI);
+    cover.style.transform = "rotateY(" + (-angle) + "deg)";
+    cover.style.setProperty("--shade", lift.toFixed(4));
+    cover.style.setProperty("--cast", "0");
+    scene.style.setProperty("--shift", ((-pageW * (1 - open)) / 2).toFixed(2) + "px");
+    scene.style.setProperty("--tilt", (7 - open * 2).toFixed(3) + "deg");
+    floorShadow.style.width = (34 + open * 32) + "%";
+    floorShadow.style.transform = "translateX(calc(-50% + " + ((1 - open) * pageW / 2).toFixed(2) + "px)) translateZ(-42px)";
+    if (!paper.classList.contains("is-on")) {
+      rightShade.style.opacity = String(lift * 0.7);
+      paintVeil(angle);
+    }
+    leftUnder.style.visibility = angle > 172 ? "visible" : "hidden";
+  }
+
+  function applyPaper(angle) {
+    paperAngle = angle;
+    var lift = Math.sin(angle * Math.PI / 180);
+    paper.style.transform = "rotateY(" + (-angle) + "deg)";
+    paper.style.setProperty("--shade", lift.toFixed(4));
+    if (paper.classList.contains("is-on")) {
+      rightShade.style.opacity = String(lift * 0.75);
+      cover.style.setProperty("--cast", (lift * 0.62).toFixed(4));
+      paintVeil(angle);
+    }
+  }
+
+  function play(from, to, durationMs, v0, apply, done) {
+    var id = ++motionGen;
+    if (motionOff()) durationMs = 0;
+    var dist = to - from;
+    if (Math.abs(dist) < 0.35 || durationMs <= 0) {
+      apply(to);
+      if (id === motionGen) done();
+      return;
+    }
+    var vel = clamp(v0, 0, 2.3);
+    var a = vel - 2;
+    var b = 3 - 2 * vel;
+    var c = vel;
+    var t0 = performance.now();
+    function frame(now) {
+      if (id !== motionGen) return;
+      var t = Math.min(1, (now - t0) / durationMs);
+      var e = t >= 1 ? 1 : ((a * t + b) * t + c) * t;
+      apply(from + dist * e);
+      if (t < 1) requestAnimationFrame(frame);
+      else done();
+    }
+    requestAnimationFrame(frame);
+  }
+
+  function glide(from, to, velDegPerSec, apply, done) {
+    var dist = to - from;
+    var dir = dist < 0 ? -1 : 1;
+    var velAlong = velDegPerSec * dir;
+    var ad = Math.abs(dist);
+    var ms;
+    if (velAlong > 90) ms = Math.min(980, Math.max(280, (ad / velAlong) * 2100));
+    else ms = Math.max(380, Math.min(1100, (ad / 180) * 1100));
+    var v0 = ad < 0.1 ? 0 : clamp((Math.max(0, velAlong) * (ms / 1000)) / ad, 0, 2.3);
+    play(from, to, ms, v0, apply, done);
+  }
+
+  function finishOpen() {
+    current = pending;
+    commit();
+    pending = null;
+    endVeil();
+    fillSheet(paperFront, current);
+    state = "open";
+    document.body.classList.add("is-open");
+    flipBtn.textContent = "再翻一页";
+    hint.textContent = "若还想再暖一会儿，就再翻一页";
+    announce(current);
+    setBusy(false);
+  }
+
+  function finishFlip() {
+    current = pending;
+    commit();
+    pending = null;
+    endVeil();
+    fillSheet(paperFront, current);
+    applyPaper(0);
+    paper.classList.remove("is-on");
+    rightShade.style.opacity = "0";
+    cover.style.setProperty("--cast", "0");
+    announce(current);
+    setBusy(false);
+  }
+
+  function finishClose() {
+    state = "closed";
+    document.body.classList.remove("is-open");
+    clearSheet(rightSheet);
+    clearSheet(paperFront);
+    endVeil();
+    current = null;
+    pending = null;
+    flipBtn.textContent = "翻开书页";
+    hint.textContent = "想被暖一下，就翻开一页";
+    setBusy(false);
+  }
+
+  function openBook() {
+    if (busy || state !== "closed") return false;
+    setBusy(true);
+    arm();
+    beginVeil();
+    var from = coverAngle;
+    play(from, 180, Math.max(460, 1320 * (1 - from / 180)), 0, applyCover, finishOpen);
+    return true;
+  }
+
+  function flipPage() {
+    if (busy || state !== "open" || !current) return false;
+    setBusy(true);
+    fillSheet(paperFront, current);
+    applyPaper(paperAngle || 0);
+    paper.classList.add("is-on");
+    arm();
+    beginVeil();
+    var from = paperAngle;
+    play(from, 180, Math.max(420, 1040 * (1 - from / 180)), 0, applyPaper, finishFlip);
+    return true;
+  }
+
+  function closeBook() {
+    if (busy || state !== "open") return false;
+    setBusy(true);
+    paper.classList.remove("is-on");
+    rightShade.style.opacity = "0";
+    play(coverAngle, 0, 1120, 0, applyCover, finishClose);
+    return true;
+  }
+
+  function onFlipClick() {
+    if (busy) return;
+    if (state === "closed") openBook();
+    else flipPage();
+  }
+
+  function bindPull(target, opts) {
+    var pid = null;
+    var startX = 0;
+    var startAngle = 0;
+    var lastX = 0;
+    var lastT = 0;
+    var vel = 0;
+    var moved = false;
+    var prepared = false;
+
+    target.addEventListener("pointerdown", function (e) {
+      if (!e.isPrimary) return;
+      if (e.pointerType === "mouse" && e.button !== 0) return;
+      if (!opts.canStart()) return;
+      pid = e.pointerId;
+      startX = lastX = e.clientX;
+      lastT = performance.now();
+      vel = 0;
+      moved = false;
+      prepared = false;
+      startAngle = opts.getAngle();
+      flipBtn.disabled = true;
+      closeBtn.disabled = true;
+      document.body.classList.add("is-dragging");
+      target.setPointerCapture(pid);
+      e.preventDefault();
+    });
+
+    target.addEventListener("pointermove", function (e) {
+      if (pid === null || e.pointerId !== pid) return;
+      var dx = startX - e.clientX;
+      var now = performance.now();
+      var dt = Math.max(8, now - lastT);
+      var inst = ((lastX - e.clientX) / pageW) * 180 / (dt / 1000);
+      vel = vel * 0.62 + inst * 0.38;
+      lastX = e.clientX;
+      lastT = now;
+      if (!moved) {
+        if (Math.abs(dx) <= 8) return;
+        moved = true;
+      }
+      var pulled = Math.max(0, dx - 8);
+      var angle = clamp(startAngle + (pulled / pageW) * 170, 0, 180);
+      if (!prepared) {
+        prepared = true;
+        opts.onPrepare();
+      }
+      opts.apply(angle);
+    });
+
+    function end(e) {
+      if (pid === null || e.pointerId !== pid) return;
+      pid = null;
+      document.body.classList.remove("is-dragging");
+      var angle = opts.getAngle();
+      var projected = angle + vel * 0.2;
+      if (!moved) {
+        opts.onClick();
+        if (!busy) {
+          flipBtn.disabled = false;
+          closeBtn.disabled = state !== "open";
+        }
+        return;
+      }
+      if (projected > 70 || angle > 54) opts.onCommit(angle, vel);
+      else opts.onCancel(angle, vel);
+    }
+
+    target.addEventListener("pointerup", end);
+    target.addEventListener("pointercancel", end);
+    target.addEventListener("contextmenu", function (e) { e.preventDefault(); });
+  }
+
+  bindPull(cover, {
+    canStart: function () { return state === "closed" && !busy; },
+    getAngle: function () { return coverAngle; },
+    apply: applyCover,
+    onPrepare: function () { arm(); beginVeil(); },
+    onClick: function () { openBook(); },
+    onCommit: function (angle, vel) {
+      setBusy(true);
+      if (!pending) arm();
+      glide(angle, 180, vel, applyCover, finishOpen);
+    },
+    onCancel: function (angle, vel) {
+      setBusy(true);
+      glide(angle, 0, vel, applyCover, function () {
+        pending = null;
+        clearSheet(rightSheet);
+        endVeil();
+        setBusy(false);
+      });
+    }
+  });
+
+  bindPull(rightUnder, {
+    canStart: function () { return state === "open" && !busy && !!current; },
+    getAngle: function () { return paperAngle; },
+    apply: applyPaper,
+    onPrepare: function () {
+      fillSheet(paperFront, current);
+      applyPaper(0);
+      paper.classList.add("is-on");
+      arm();
+      beginVeil();
+    },
+    onClick: function () { flipPage(); },
+    onCommit: function (angle, vel) {
+      setBusy(true);
+      if (!paper.classList.contains("is-on")) {
+        fillSheet(paperFront, current);
+        paper.classList.add("is-on");
+      }
+      if (!pending) arm();
+      glide(angle, 180, vel, applyPaper, finishFlip);
+    },
+    onCancel: function (angle, vel) {
+      setBusy(true);
+      glide(angle, 0, vel, applyPaper, function () {
+        pending = null;
+        if (current) fillSheet(rightSheet, current);
+        endVeil();
+        applyPaper(0);
+        paper.classList.remove("is-on");
+        rightShade.style.opacity = "0";
+        cover.style.setProperty("--cast", "0");
+        setBusy(false);
+      });
+    }
+  });
+
+  flipBtn.addEventListener("click", onFlipClick);
+  closeBtn.addEventListener("click", function () { closeBook(); });
+
+  document.addEventListener("keydown", function (e) {
+    if (e.repeat || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.code === "Escape") {
+      if (state === "open" && !busy) closeBook();
+      return;
+    }
+    if (e.code !== "Space" && e.code !== "Enter") return;
+    if (e.target === closeBtn) return;
+    e.preventDefault();
+    onFlipClick();
+  });
+
+  window.addEventListener("resize", function () {
+    measure();
+    applyCover(coverAngle);
+    applyPaper(paperAngle);
+  });
+
+  refill();
+  measure();
+  applyCover(0);
+  applyPaper(0);
+})();
+</script>
+</body>
+</html>
