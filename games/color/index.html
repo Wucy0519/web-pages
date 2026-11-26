@@ -1,0 +1,1364 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#0e0f12">
+  <title>绝对色感</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23191a1f'/%3E%3Cg fill='%236a8e85'%3E%3Crect x='5' y='5' width='6' height='6' rx='1.6'/%3E%3Crect x='13' y='5' width='6' height='6' rx='1.6'/%3E%3Crect x='21' y='5' width='6' height='6' rx='1.6'/%3E%3Crect x='5' y='13' width='6' height='6' rx='1.6'/%3E%3Crect x='13' y='13' width='6' height='6' rx='1.6'/%3E%3Crect x='21' y='13' width='6' height='6' rx='1.6'/%3E%3Crect x='5' y='21' width='6' height='6' rx='1.6'/%3E%3Crect x='13' y='21' width='6' height='6' rx='1.6'/%3E%3C/g%3E%3Crect x='21' y='21' width='6' height='6' rx='1.6' fill='%23da9f55'/%3E%3C/svg%3E">
+  <style>
+    :root {
+      --bg: rgb(14 15 18);
+      --lift: rgb(37 38 45);
+      --plate: rgb(25 26 31);
+      --paper: rgb(244 241 234);
+      --ink: rgb(23 24 28);
+      --muted: rgb(155 151 139);
+      --faint: rgb(70 72 83);
+      --coral: rgb(225 90 69);
+      --gold: rgb(227 177 90);
+      --logo-base: rgb(106 142 133);
+      --logo-odd: rgb(218 159 85);
+      --hover: rgb(255 252 248);
+      --pressed: rgb(209 206 196);
+      color-scheme: dark;
+    }
+
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      background: var(--bg);
+    }
+
+    body {
+      min-height: 100vh;
+      min-height: 100dvh;
+      color: var(--paper);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    ::selection { background: rgba(227, 177, 90, 0.28); }
+
+    button, input { font-family: inherit; }
+
+    .screen {
+      min-height: 100vh;
+      min-height: 100dvh;
+    }
+
+    .title-screen,
+    .over-screen {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .grow {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 48px 24px 12px;
+    }
+
+    .logo-plate {
+      width: 130px;
+      height: 130px;
+      margin-bottom: 36px;
+      border-radius: 22px;
+      background: var(--plate);
+      display: grid;
+      place-items: center;
+    }
+
+    .logo-grid {
+      width: 94px;
+      height: 94px;
+      display: grid;
+      grid-template-columns: repeat(3, 26px);
+      gap: 8px;
+    }
+
+    .logo-grid i {
+      border-radius: 7px;
+      background: var(--logo-base);
+    }
+
+    .logo-grid i.odd { background: var(--logo-odd); }
+
+    .kicker {
+      margin: 0 0 12px;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 3px;
+      color: var(--gold);
+    }
+
+    .wordmark {
+      margin: 0;
+      font-size: 56px;
+      font-weight: 600;
+      line-height: 1.15;
+      letter-spacing: 0.02em;
+    }
+
+    .subtitle {
+      max-width: 34em;
+      margin: 16px auto 0;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.65;
+    }
+
+    .btn {
+      width: 220px;
+      height: 54px;
+      border-radius: 27px;
+      border: 0;
+      font-size: 17px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 80ms linear, border-color 80ms linear;
+    }
+
+    .btn:focus { outline: none; }
+    .btn:focus-visible {
+      outline: 2px solid var(--gold);
+      outline-offset: 3px;
+    }
+
+    .btn.solid {
+      background: var(--paper);
+      color: var(--ink);
+    }
+
+    .btn.solid:hover { background: var(--hover); }
+    .btn.solid:active { background: var(--pressed); }
+
+    .btn.ghost {
+      background: transparent;
+      color: var(--paper);
+      border: 1.5px solid var(--faint);
+    }
+
+    .btn.ghost:hover,
+    .btn.ghost:focus-visible { border-color: var(--paper); }
+
+    .btn.ghost:active {
+      background: rgba(244, 241, 234, 0.08);
+      border-color: var(--paper);
+    }
+
+    .start { margin-top: 28px; }
+
+    .record {
+      min-height: 24px;
+      margin: 18px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .text-btn {
+      margin-top: 6px;
+      padding: 6px 10px;
+      border: 0;
+      background: none;
+      color: var(--faint);
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .text-btn:hover { color: var(--muted); }
+    .text-btn:focus-visible {
+      outline: 2px solid var(--gold);
+      outline-offset: 2px;
+      border-radius: 8px;
+    }
+
+    .footer {
+      margin: 0;
+      padding: 8px 16px calc(16px + env(safe-area-inset-bottom));
+      text-align: center;
+      color: var(--faint);
+      font-size: 12px;
+    }
+
+    .play-screen {
+      width: min(960px, 100%);
+      height: 100vh;
+      height: 100dvh;
+      margin: 0 auto;
+      padding: 48px 28px 0;
+      display: flex;
+      flex-direction: column;
+      overflow: auto;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      align-items: start;
+    }
+
+    .stat { text-align: center; }
+
+    .stat .label {
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 1.2px;
+      color: var(--muted);
+    }
+
+    .stat .value {
+      margin-top: 4px;
+      font-size: 28px;
+      font-weight: 600;
+      line-height: 34px;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .stat .detail {
+      min-height: 18px;
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .lives {
+      height: 34px;
+      margin-top: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .lives i {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--paper);
+    }
+
+    .lives i.off {
+      background: transparent;
+      border: 1.5px solid var(--faint);
+    }
+
+    .cluster-wrap {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .cluster {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .hint, .speed, .plate { flex: none; }
+
+    .hint {
+      margin: 0 0 10px;
+      min-height: 24px;
+      font-size: 15px;
+      font-weight: 500;
+      text-align: center;
+    }
+
+    .hint.good { color: var(--gold); }
+    .hint.bad { color: var(--coral); }
+
+    .plate {
+      width: min(100%, 520px);
+      aspect-ratio: 1;
+      padding: 22px;
+      border-radius: 28px;
+      background: var(--plate);
+    }
+
+    .grid {
+      width: 100%;
+      height: 100%;
+      display: grid;
+    }
+
+    .tile {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      min-width: 0;
+      min-height: 0;
+      padding: 0;
+      border: 0;
+      border-radius: max(8px, 16%);
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: none;
+      box-shadow: none;
+      cursor: pointer;
+      touch-action: manipulation;
+      forced-color-adjust: none;
+    }
+
+    .tile:focus { outline: none; }
+
+    .grid.locked .tile { cursor: default; }
+
+    .ring {
+      display: none;
+      position: absolute;
+      inset: clamp(3px, 8%, 6px);
+      border-radius: max(6px, 14%);
+      pointer-events: none;
+    }
+
+    .ring.show {
+      display: block;
+      border: 2.5px solid var(--mark, var(--paper));
+      box-shadow: 0 0 0 2.5px rgba(0, 0, 0, 0.55);
+    }
+
+    .ring.good { --mark: var(--paper); }
+    .ring.bad { --mark: var(--coral); }
+
+    .speed {
+      width: min(240px, 70%);
+      margin-top: 16px;
+    }
+
+    .speed-label {
+      margin-bottom: 6px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .track {
+      height: 4px;
+      border-radius: 2px;
+      background: rgba(70, 72, 83, 0.85);
+      overflow: hidden;
+    }
+
+    .fill {
+      width: 0;
+      height: 100%;
+      border-radius: inherit;
+      background: var(--paper);
+    }
+
+    .over-title {
+      margin: 8px 0 0;
+      font-size: 40px;
+      font-weight: 600;
+      line-height: 1.2;
+    }
+
+    .over-score {
+      margin: 18px 0 0;
+      font-size: 18px;
+    }
+
+    .over-streak {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .record-slot {
+      min-height: 32px;
+      margin: 16px 0 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .quiet {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .pill {
+      height: 28px;
+      padding: 0 14px;
+      border-radius: 14px;
+      display: inline-flex;
+      align-items: center;
+      background: rgba(227, 177, 90, 0.16);
+      color: var(--gold);
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 1px;
+    }
+
+    .actions {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    body:has(#modal:not([hidden])) .screen {
+      visibility: hidden;
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      z-index: 5;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background: rgba(8, 9, 12, 0.72);
+    }
+
+    .dialog {
+      width: min(360px, 100%);
+      padding: 28px 24px 24px;
+      border-radius: 22px;
+      background: rgb(32 34 40);
+      text-align: center;
+      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
+    }
+
+    .dialog h2 {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 600;
+    }
+
+    .dialog p {
+      margin: 10px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .dialog-actions {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 22px;
+    }
+
+    .dialog-actions .btn {
+      width: 120px;
+      height: 44px;
+    }
+
+    body {
+      background:
+        radial-gradient(120% 78% at 50% 46%, var(--lift) 0%, var(--bg) 62%);
+    }
+
+    .break { display: inline; }
+
+    @media (max-width: 640px) {
+      .break { display: block; }
+      .wordmark { font-size: 42px; }
+      .over-title { font-size: 32px; }
+      .subtitle { font-size: 15px; }
+      .play-screen { padding: 22px 14px 0; }
+      .stat .value { font-size: 22px; line-height: 28px; }
+      .lives { height: 28px; }
+      .plate { padding: 14px; border-radius: 20px; }
+      .btn { width: min(220px, 100%); }
+    }
+
+    @media (max-height: 740px) {
+      .play-screen { padding-top: 18px; }
+      .logo-plate { margin-bottom: 22px; }
+    }
+  </style>
+</head>
+<body><style>
+a.catalog-back{position:fixed;top:12px;left:12px;z-index:9999;display:inline-flex;align-items:center;padding:6px 12px;border-radius:999px;background:rgba(255,250,243,.94);color:#241c14;border:1px solid #e3d3be;text-decoration:none;font:14px/1.4 "PingFang SC","Hiragino Sans GB","Noto Sans SC",sans-serif;box-shadow:0 6px 16px rgba(60,40,20,.08)}
+a.catalog-back:hover{border-color:#9d2c1a;color:#9d2c1a}
+</style>
+<a class="catalog-back" href="../../index.html">返回目录</a>
+
+  <section id="title" class="screen title-screen">
+    <div class="grow">
+      <div class="logo-plate" aria-hidden="true">
+        <div class="logo-grid">
+          <i></i><i></i><i></i>
+          <i></i><i></i><i></i>
+          <i></i><i></i><i class="odd"></i>
+        </div>
+      </div>
+      <p class="kicker">色觉闯关</p>
+      <h1 class="wordmark">绝对色感</h1>
+      <p class="subtitle">
+        每关都是随机配色的方阵，只有一块不一样。<br>
+        第 1 关是 3×3，差别明显；<span class="break">之后格子更多，色差更小。</span><br>
+        点错失去一条命，三条命用完本局结束。
+      </p>
+      <button type="button" class="btn solid start" id="start">开始闯关</button>
+      <p class="record" id="record-line">还没有纪录</p>
+      <button type="button" class="text-btn" id="clear" hidden>清除纪录</button>
+    </div>
+    <p class="footer">空格开始</p>
+  </section>
+
+  <section id="play" class="screen play-screen" hidden>
+    <div class="stats">
+      <div class="stat">
+        <div class="label">关卡</div>
+        <div class="value" id="level-value">第 1 关</div>
+        <div class="detail" id="level-detail">3 × 3 · 明显</div>
+      </div>
+      <div class="stat">
+        <div class="label">得分</div>
+        <div class="value" id="score-value">0</div>
+        <div class="detail" id="score-detail"></div>
+      </div>
+      <div class="stat">
+        <div class="label">生命</div>
+        <div class="lives" id="lives" aria-label="还剩 3 条命"><i></i><i></i><i></i></div>
+      </div>
+    </div>
+    <div class="cluster-wrap" id="cluster-wrap">
+      <div class="cluster">
+        <p class="hint" id="hint" aria-live="polite">找出颜色不同的一块</p>
+        <div class="plate" id="plate">
+          <div class="grid" id="grid" role="group" aria-label="色块方阵"></div>
+        </div>
+        <div class="speed">
+          <div class="speed-label">速度加成</div>
+          <div class="track" id="speed-track"><div class="fill" id="speed-fill"></div></div>
+        </div>
+      </div>
+    </div>
+    <p class="footer">点错失去一条命 · R 重来 · esc 返回</p>
+  </section>
+
+  <section id="over" class="screen over-screen" hidden>
+    <div class="grow">
+      <p class="kicker">本局结束</p>
+      <h2 class="over-title" id="over-title">来到第 1 关</h2>
+      <p class="over-score" id="over-score">得分 0</p>
+      <p class="over-streak" id="over-streak">还没有答对</p>
+      <div class="record-slot">
+        <div class="pill" id="new-record" hidden>新纪录</div>
+        <p class="quiet" id="old-record" hidden></p>
+      </div>
+      <div class="actions">
+        <button type="button" class="btn solid" id="again">再闯一次</button>
+        <button type="button" class="btn ghost" id="home">返回</button>
+      </div>
+    </div>
+    <p class="footer">空格再来 · esc 返回</p>
+  </section>
+
+  <div class="modal" id="modal" hidden>
+    <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <h2 id="modal-title">清除纪录？</h2>
+      <p>最佳关卡和得分会回到零。</p>
+      <div class="dialog-actions">
+        <button type="button" class="btn ghost" id="modal-cancel">取消</button>
+        <button type="button" class="btn solid" id="modal-ok">清除</button>
+      </div>
+    </div>
+  </div>
+
+  <noscript>需要启用 JavaScript 才能闯关。</noscript>
+
+  <script>
+    const LIVES = 3;
+    const SPEED_WINDOW = 7.5;
+    const STORAGE_LEVEL = "absolutesense.bestLevel";
+    const STORAGE_SCORE = "absolutesense.bestScore";
+
+    function clamp(value, low, high) {
+      return Math.min(high, Math.max(low, value));
+    }
+
+    class SplitMix64 {
+      constructor(seed) {
+        this.state = BigInt(seed) & 0xFFFFFFFFFFFFFFFFn;
+      }
+
+      static random() {
+        const buf = new Uint32Array(2);
+        if (typeof crypto !== "undefined" && crypto.getRandomValues) {
+          crypto.getRandomValues(buf);
+        } else {
+          buf[0] = Math.floor(Math.random() * 0x100000000);
+          buf[1] = Math.floor(Math.random() * 0x100000000);
+        }
+        return new SplitMix64((BigInt(buf[0]) << 32n) | BigInt(buf[1]));
+      }
+
+      next() {
+        this.state = (this.state + 0x9E3779B97F4A7C15n) & 0xFFFFFFFFFFFFFFFFn;
+        let z = this.state;
+        z = ((z ^ (z >> 30n)) * 0xBF58476D1CE4E5B9n) & 0xFFFFFFFFFFFFFFFFn;
+        z = ((z ^ (z >> 27n)) * 0x94D049BB133111EBn) & 0xFFFFFFFFFFFFFFFFn;
+        return (z ^ (z >> 31n)) & 0xFFFFFFFFFFFFFFFFn;
+      }
+
+      unit() {
+        return Number(this.next() >> 11n) / 9007199254740992;
+      }
+
+      int(limit) {
+        return Number(this.next() % BigInt(limit));
+      }
+
+      sign() {
+        return (this.next() & 1n) === 0n ? -1 : 1;
+      }
+    }
+
+    function channelByte(channel) {
+      return Math.round(clamp(channel, 0, 1) * 255);
+    }
+
+    const ColorScience = {
+      linearize(channel) {
+        if (channel <= 0.04045) return channel / 12.92;
+        return Math.pow((channel + 0.055) / 1.055, 2.4);
+      },
+
+      delinearize(channel) {
+        if (channel <= 0.0031308) return 12.92 * channel;
+        return 1.055 * Math.pow(channel, 1 / 2.4) - 0.055;
+      },
+
+      oklab(rgb) {
+        const r = this.linearize(rgb.r);
+        const g = this.linearize(rgb.g);
+        const b = this.linearize(rgb.b);
+        const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
+        const m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
+        const s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
+        return {
+          L: 0.2104542553 * l + 0.7936177850 * m - 0.0040720468 * s,
+          a: 1.9779984951 * l - 2.4285922050 * m + 0.4505937099 * s,
+          b: 0.0259040371 * l + 0.7827717662 * m - 0.8086757660 * s,
+        };
+      },
+
+      rgb(lab) {
+        const l = lab.L + 0.3963377774 * lab.a + 0.2158037573 * lab.b;
+        const m = lab.L - 0.1055613458 * lab.a - 0.0638541728 * lab.b;
+        const s = lab.L - 0.0894841775 * lab.a - 1.2914855480 * lab.b;
+        const l3 = l * l * l;
+        const m3 = m * m * m;
+        const s3 = s * s * s;
+        const linear = [
+          4.0767416621 * l3 - 3.3077115913 * m3 + 0.2309699292 * s3,
+          -1.2684380046 * l3 + 2.6097574011 * m3 - 0.3413193965 * s3,
+          -0.0041960863 * l3 - 0.7034186147 * m3 + 1.7076147010 * s3,
+        ];
+        const limit = 0.0015;
+        if (!linear.every((value) => Number.isFinite(value) && value >= -limit && value <= 1 + limit)) return null;
+        const rgb = {
+          r: clamp(this.delinearize(clamp(linear[0], 0, 1)), 0, 1),
+          g: clamp(this.delinearize(clamp(linear[1], 0, 1)), 0, 1),
+          b: clamp(this.delinearize(clamp(linear[2], 0, 1)), 0, 1),
+        };
+        if (![rgb.r, rgb.g, rgb.b].every(Number.isFinite)) return null;
+        if (this.distance(lab, this.oklab(rgb)) >= 0.01) return null;
+        return rgb;
+      },
+
+      distance(p, q) {
+        const dL = p.L - q.L;
+        const da = p.a - q.a;
+        const db = p.b - q.b;
+        return Math.sqrt(dL * dL + da * da + db * db);
+      },
+
+      quantize(rgb) {
+        return {
+          r: channelByte(rgb.r) / 255,
+          g: channelByte(rgb.g) / 255,
+          b: channelByte(rgb.b) / 255,
+        };
+      },
+    };
+
+    function cssColor(rgb) {
+      return `rgb(${channelByte(rgb.r)} ${channelByte(rgb.g)} ${channelByte(rgb.b)})`;
+    }
+
+    function channelGap(a, b) {
+      return Math.max(Math.abs(a.r - b.r), Math.abs(a.g - b.g), Math.abs(a.b - b.b));
+    }
+
+    function sameQuantized(a, b) {
+      return a.r === b.r && a.g === b.g && a.b === b.b;
+    }
+
+    function inRange(lab) {
+      return lab.L >= 0.48 && lab.L <= 0.88 && Number.isFinite(lab.a) && Number.isFinite(lab.b);
+    }
+
+    function baseColor(axis, delta, rng) {
+      const hue = rng.unit() * 2 * Math.PI;
+      if (axis === "lightness") {
+        const low = 0.50 + delta;
+        const high = 0.86 - delta;
+        if (!(high > low + 0.01)) return null;
+        const lightness = low + rng.unit() * (high - low);
+        const chroma = 0.02 + rng.unit() * 0.045;
+        return { L: lightness, a: Math.cos(hue) * chroma, b: Math.sin(hue) * chroma };
+      }
+      if (axis === "chroma") {
+        const lightness = 0.56 + rng.unit() * 0.2;
+        const chroma = delta + 0.03 + rng.unit() * 0.06;
+        return { L: lightness, a: Math.cos(hue) * chroma, b: Math.sin(hue) * chroma };
+      }
+      if (axis === "hue") {
+        const lightness = 0.62 + rng.unit() * 0.12;
+        const chroma = 0.08 + rng.unit() * 0.06;
+        return { L: lightness, a: Math.cos(hue) * chroma, b: Math.sin(hue) * chroma };
+      }
+      const lightness = 0.64 + rng.unit() * 0.04;
+      const chroma = 0.055 + rng.unit() * 0.03;
+      return { L: lightness, a: Math.cos(hue) * chroma, b: Math.sin(hue) * chroma };
+    }
+
+    function shifted(base, axis, delta, rng) {
+      if (axis === "lightness") {
+        return { L: base.L + rng.sign() * delta, a: base.a, b: base.b };
+      }
+      if (axis === "chroma") {
+        const chroma = Math.hypot(base.a, base.b);
+        if (!(chroma > 0.02)) return null;
+        const next = chroma + rng.sign() * delta;
+        if (!(next > 0.015)) return null;
+        const scale = next / chroma;
+        return { L: base.L, a: base.a * scale, b: base.b * scale };
+      }
+      if (axis === "hue") {
+        const chroma = Math.hypot(base.a, base.b);
+        if (!(chroma > 0.03)) return null;
+        const sign = rng.sign();
+        const maxAngle = 20 * Math.PI / 180;
+        const maxChord = 2 * chroma * Math.sin(maxAngle / 2);
+        const hueChord = Math.min(delta, maxChord);
+        const lightChord = Math.sqrt(Math.max(0, delta * delta - hueChord * hueChord));
+        const theta = 2 * Math.asin(Math.min(1, hueChord / (2 * chroma))) * sign;
+        const hue = Math.atan2(base.b, base.a) + theta;
+        const candidate = base.L + sign * lightChord;
+        const lightSign = candidate >= 0.52 && candidate <= 0.84 ? sign : -sign;
+        return {
+          L: base.L + lightSign * lightChord,
+          a: Math.cos(hue) * chroma,
+          b: Math.sin(hue) * chroma,
+        };
+      }
+      const lightnessShare = 0.84;
+      const chromaShare = Math.sqrt(1 - lightnessShare * lightnessShare);
+      const chroma = Math.hypot(base.a, base.b);
+      if (!(chroma > 0.02)) return null;
+      const lightnessShift = delta * lightnessShare;
+      const chromaShift = delta * chromaShare;
+      let sign = rng.sign();
+      const fits = (direction) => {
+        const nextLightness = base.L + direction * lightnessShift;
+        const nextChroma = chroma + direction * chromaShift;
+        return nextLightness >= 0.52 && nextLightness <= 0.84 && nextChroma > 0.035 && nextChroma < 0.2;
+      };
+      if (!fits(sign)) sign = -sign;
+      if (!fits(sign)) return null;
+      const scale = (chroma + sign * chromaShift) / chroma;
+      return { L: base.L + sign * lightnessShift, a: base.a * scale, b: base.b * scale };
+    }
+
+    function sample(level, size, target, axis, attempts, rng) {
+      const baseLab = baseColor(axis, target, rng);
+      if (!baseLab) return null;
+      const oddLab = shifted(baseLab, axis, target, rng);
+      if (!oddLab || !inRange(baseLab) || !inRange(oddLab)) return null;
+      const base = ColorScience.rgb(baseLab);
+      const odd = ColorScience.rgb(oddLab);
+      if (!base || !odd) return null;
+      const measured = ColorScience.distance(ColorScience.oklab(base), ColorScience.oklab(odd));
+      if (!Number.isFinite(measured) || !(target > 0)) return null;
+      const ratio = measured / target;
+      if (!(ratio > 0.88 && ratio < 1.12)) return null;
+      const quantizedBase = ColorScience.quantize(base);
+      const quantizedOdd = ColorScience.quantize(odd);
+      if (sameQuantized(quantizedBase, quantizedOdd)) return null;
+      const quantizedDistance = ColorScience.distance(
+        ColorScience.oklab(quantizedBase),
+        ColorScience.oklab(quantizedOdd)
+      );
+      if (quantizedDistance < target * 0.72) return null;
+      if (level === 1 && channelGap(base, odd) < 0.065) return null;
+      if (level === 2 && channelGap(base, odd) < 0.04) return null;
+      return {
+        level,
+        size,
+        base,
+        odd,
+        oddIndex: rng.int(size * size),
+        axis,
+        distance: measured,
+        attempts,
+        synthesized: false,
+      };
+    }
+
+    function fallback(level, size, target, axis, rng) {
+      const shift = Math.min(0.2, Math.max(0.05, target));
+      const base = { r: 0.56, g: 0.63, b: 0.61 };
+      const odd = {
+        r: clamp(base.r + shift, 0, 1),
+        g: clamp(base.g - shift * 0.25, 0, 1),
+        b: base.b,
+      };
+      return {
+        level,
+        size,
+        base,
+        odd,
+        oddIndex: rng.int(size * size),
+        axis,
+        distance: ColorScience.distance(ColorScience.oklab(base), ColorScience.oklab(odd)),
+        attempts: 72,
+        synthesized: true,
+      };
+    }
+
+    const Game = {
+      gridSize(level) {
+        return Math.min(8, Math.max(3, Math.max(level, 1) + 2));
+      },
+
+      delta(level) {
+        const step = Math.max(level, 1) - 1;
+        return 0.016 + 0.164 * Math.exp(-0.55 * step);
+      },
+
+      clarity(level) {
+        const safe = Math.max(level, 1);
+        if (safe === 1) return "明显";
+        if (safe === 2) return "清楚";
+        if (safe <= 4) return "细看";
+        if (safe <= 7) return "微弱";
+        return "极微";
+      },
+
+      points(level, seconds, streak) {
+        const safeLevel = Math.max(1, level);
+        const base = 40 + safeLevel * 25;
+        const elapsed = Math.max(0, seconds);
+        const speed = clamp((SPEED_WINDOW - elapsed) / SPEED_WINDOW, 0, 1);
+        const speedPoints = Math.round(base * speed);
+        const streakPoints = Math.min(Math.max(streak - 1, 0), 15) * 12;
+        return base + speedPoints + streakPoints;
+      },
+
+      makeBoard(level, rng) {
+        const safeLevel = Math.max(1, level);
+        const size = this.gridSize(safeLevel);
+        const target = this.delta(safeLevel);
+        const axis = safeLevel === 1 ? "mixed" : ["lightness", "chroma", "hue"][rng.int(3)];
+        for (let attempt = 1; attempt <= 72; attempt += 1) {
+          const board = sample(safeLevel, size, target, axis, attempt, rng);
+          if (board) return board;
+        }
+        return fallback(safeLevel, size, target, axis, rng);
+      },
+    };
+
+    function formatScore(value) {
+      return Math.round(value).toLocaleString("en-US");
+    }
+
+    function selfTest() {
+      let failed = 0;
+      const check = (condition, message) => {
+        if (!condition) {
+          failed += 1;
+          console.error("FAIL " + message);
+        }
+      };
+
+      const white = ColorScience.oklab({ r: 1, g: 1, b: 1 });
+      check(Math.abs(white.L - 1) < 1e-5 && Math.abs(white.a) < 1e-5 && Math.abs(white.b) < 1e-5, "white");
+      check(ColorScience.rgb(white) !== null, "white roundtrip");
+      const black = ColorScience.oklab({ r: 0, g: 0, b: 0 });
+      check(Math.abs(black.L) < 1e-6 && Math.abs(black.a) < 1e-6 && Math.abs(black.b) < 1e-6, "black");
+      const red = ColorScience.oklab({ r: 1, g: 0, b: 0 });
+      check(Math.abs(red.L - 0.627955) < 0.002, "red L " + red.L);
+      check(Math.abs(red.a - 0.224863) < 0.002, "red a " + red.a);
+      check(Math.abs(red.b - 0.125846) < 0.002, "red b " + red.b);
+      const sampleRgb = { r: 0.2, g: 0.5, b: 0.8 };
+      const back = ColorScience.rgb(ColorScience.oklab(sampleRgb));
+      check(back && Math.abs(back.r - 0.2) < 1e-4 && Math.abs(back.g - 0.5) < 1e-4 && Math.abs(back.b - 0.8) < 1e-4, "sRGB roundtrip");
+
+      let previousDelta = 999;
+      for (let level = 1; level <= 12; level += 1) {
+        const delta = Game.delta(level);
+        check(delta < previousDelta, "delta " + level);
+        previousDelta = delta;
+        check(Game.gridSize(level) === Math.min(8, level + 2), "grid " + level);
+      }
+      check(Game.clarity(1) === "明显" && Game.clarity(2) === "清楚" && Game.clarity(4) === "细看" && Game.clarity(8) === "极微", "clarity");
+      check(Game.delta(1) > 0.16 && Game.delta(2) < Game.delta(1) && Game.delta(2) > 0.08, "early deltas");
+      check(Game.points(1, 0, 1) > Game.points(1, 8, 1), "speed points");
+      check(Game.points(2, 1, 5) > Game.points(2, 1, 1), "streak points");
+      check(Game.points(4, 1, 2) > Game.points(1, 1, 2), "level points");
+
+      const first = Game.makeBoard(3, new SplitMix64(99));
+      const second = Game.makeBoard(3, new SplitMix64(99));
+      check(JSON.stringify(first) === JSON.stringify(second), "same seed");
+
+      let maxAttempts = 0;
+      for (const level of [1, 2, 3, 5, 8]) {
+        for (let seed = 1; seed <= 24; seed += 1) {
+          const board = Game.makeBoard(level, new SplitMix64(BigInt(seed * 100 + level)));
+          maxAttempts = Math.max(maxAttempts, board.attempts);
+          check(board.size === Game.gridSize(level), "size " + level + " " + seed);
+          check(board.oddIndex >= 0 && board.oddIndex < board.size * board.size, "index " + level + " " + seed);
+          check(!sameQuantized(ColorScience.quantize(board.base), ColorScience.quantize(board.odd)), "8-bit " + level + " " + seed);
+          check([board.base, board.odd].every((color) => [color.r, color.g, color.b].every((channel) => channel >= 0 && channel <= 1)), "range " + level + " " + seed);
+          check(!board.synthesized, "gamut " + level + " " + seed);
+          const ratio = board.distance / Game.delta(level);
+          check(ratio > 0.82 && ratio < 1.18, "ratio " + ratio.toFixed(3) + " " + level + " " + seed);
+          if (level === 1) {
+            check(board.axis === "mixed", "axis " + seed);
+            check(channelGap(board.base, board.odd) >= 0.06, "gap1 " + seed);
+          }
+          if (level === 2) check(channelGap(board.base, board.odd) >= 0.035, "gap2 " + seed);
+          const baseLab = ColorScience.oklab(board.base);
+          const oddLab = ColorScience.oklab(board.odd);
+          if (Math.hypot(baseLab.a, baseLab.b) > 0.03 && Math.hypot(oddLab.a, oddLab.b) > 0.03) {
+            let hueGap = Math.abs(Math.atan2(baseLab.b, baseLab.a) - Math.atan2(oddLab.b, oddLab.a));
+            if (hueGap > Math.PI) hueGap = 2 * Math.PI - hueGap;
+            check(hueGap < 0.42, "hue " + level + " " + seed);
+          }
+        }
+      }
+      check(maxAttempts < 72, "max attempts " + maxAttempts);
+      if (failed === 0) console.log("self-test passed, max attempts " + maxAttempts);
+      else console.error(failed + " checks failed");
+      return failed;
+    }
+
+    const state = {
+      phase: "title",
+      level: 1,
+      lives: LIVES,
+      score: 0,
+      streak: 0,
+      bestStreak: 0,
+      board: null,
+      startedAt: 0,
+      feedback: null,
+      locked: false,
+      lastGain: 0,
+      frozenSpeed: null,
+      bestLevel: 0,
+      bestScore: 0,
+      baselineLevel: 0,
+      baselineScore: 0,
+      rng: null,
+    };
+
+    let token = 0;
+    let pending = 0;
+
+    function loadInt(key) {
+      try {
+        const value = Number.parseInt(localStorage.getItem(key) || "0", 10);
+        return Number.isFinite(value) && value > 0 ? value : 0;
+      } catch {
+        return 0;
+      }
+    }
+
+    function saveRecord(level, score) {
+      try {
+        localStorage.setItem(STORAGE_LEVEL, String(level));
+        localStorage.setItem(STORAGE_SCORE, String(score));
+      } catch {
+        /* 无存储时只留在这一局里 */
+      }
+    }
+
+    function recordLine() {
+      if (state.bestLevel <= 0 && state.bestScore <= 0) return "还没有纪录";
+      if (state.bestLevel <= 0) return `最佳得分 ${formatScore(state.bestScore)}`;
+      return `最佳 第 ${state.bestLevel} 关 · ${formatScore(state.bestScore)} 分`;
+    }
+
+    function didSetRecord() {
+      const scoreBeat = state.score > state.baselineScore && state.score > 0;
+      const levelBeat = state.level > state.baselineLevel && state.level > 1;
+      return scoreBeat || levelBeat;
+    }
+
+    function commitRecord() {
+      state.bestLevel = Math.max(state.bestLevel, state.level);
+      state.bestScore = Math.max(state.bestScore, state.score);
+      saveRecord(state.bestLevel, state.bestScore);
+    }
+
+    function after(delay, fn) {
+      const expected = ++token;
+      window.clearTimeout(pending);
+      pending = window.setTimeout(() => {
+        if (token === expected) fn();
+      }, delay * 1000);
+    }
+
+    function cancelPending() {
+      token += 1;
+      window.clearTimeout(pending);
+    }
+
+    function speedNow() {
+      if (state.frozenSpeed != null) return state.frozenSpeed;
+      const elapsed = (performance.now() - state.startedAt) / 1000;
+      return clamp((SPEED_WINDOW - elapsed) / SPEED_WINDOW, 0, 1);
+    }
+
+    function boot() {
+      const title = document.getElementById("title");
+      const play = document.getElementById("play");
+      const over = document.getElementById("over");
+      const recordLineEl = document.getElementById("record-line");
+      const clearBtn = document.getElementById("clear");
+      const levelValue = document.getElementById("level-value");
+      const levelDetail = document.getElementById("level-detail");
+      const scoreValue = document.getElementById("score-value");
+      const scoreDetail = document.getElementById("score-detail");
+      const livesEl = document.getElementById("lives");
+      const hint = document.getElementById("hint");
+      const plate = document.getElementById("plate");
+      const grid = document.getElementById("grid");
+      const speedFill = document.getElementById("speed-fill");
+      const clusterWrap = document.getElementById("cluster-wrap");
+      const speedBlock = document.querySelector(".speed");
+      const overTitle = document.getElementById("over-title");
+      const overScore = document.getElementById("over-score");
+      const overStreak = document.getElementById("over-streak");
+      const newRecord = document.getElementById("new-record");
+      const oldRecord = document.getElementById("old-record");
+      const modal = document.getElementById("modal");
+      const modalOk = document.getElementById("modal-ok");
+      const modalCancel = document.getElementById("modal-cancel");
+
+      state.bestLevel = loadInt(STORAGE_LEVEL);
+      state.bestScore = loadInt(STORAGE_SCORE);
+      state.rng = SplitMix64.random();
+
+      function paintSpeed() {
+        speedFill.style.width = `${speedNow() * 100}%`;
+      }
+
+      function fitBoard() {
+        if (state.phase !== "playing" || play.hidden) return;
+        const chrome = hint.offsetHeight + speedBlock.offsetHeight + 26;
+        const side = Math.floor(Math.min(
+          clusterWrap.clientWidth,
+          Math.max(0, clusterWrap.clientHeight - chrome),
+          720
+        ));
+        if (side < 120) return;
+        plate.style.width = `${side}px`;
+        plate.style.height = `${side}px`;
+      }
+
+      function paintLives() {
+        const dots = livesEl.querySelectorAll("i");
+        dots.forEach((dot, index) => dot.classList.toggle("off", index >= state.lives));
+        livesEl.setAttribute("aria-label", `还剩 ${Math.max(0, state.lives)} 条命`);
+      }
+
+      function paintScoreDetail() {
+        if (state.feedback && state.feedback.type === "correct" && state.lastGain > 0) {
+          const streak = state.streak >= 2 ? ` · 连续 ${state.streak}` : "";
+          scoreDetail.textContent = `+${state.lastGain}${streak}`;
+          scoreDetail.style.color = "var(--gold)";
+          return;
+        }
+        scoreDetail.style.color = "var(--muted)";
+        scoreDetail.textContent = state.streak >= 2 ? `连续 ${state.streak}` : "";
+      }
+
+      function buildGrid() {
+        const board = state.board;
+        grid.classList.toggle("locked", state.locked);
+        grid.style.gridTemplateColumns = `repeat(${board.size}, minmax(0, 1fr))`;
+        grid.style.gap = `${board.size <= 4 ? 14 : 9}px`;
+        grid.replaceChildren();
+        for (let index = 0; index < board.size * board.size; index += 1) {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "tile";
+          button.dataset.index = String(index);
+          button.style.backgroundColor = cssColor(index === board.oddIndex ? board.odd : board.base);
+          button.setAttribute("aria-label", `第 ${index + 1} 块`);
+          const ring = document.createElement("span");
+          ring.className = "ring";
+          if (state.feedback && state.feedback.type === "correct" && index === board.oddIndex) {
+            ring.classList.add("show", "good");
+          }
+          if (state.feedback && state.feedback.type === "wrong" && index === state.feedback.picked) {
+            ring.classList.add("show", "bad");
+          }
+          if (state.feedback && state.feedback.type === "wrong" && index === board.oddIndex) {
+            ring.classList.add("show", "good");
+          }
+          button.append(ring);
+          grid.append(button);
+        }
+      }
+
+      function renderTitle() {
+        recordLineEl.textContent = recordLine();
+        clearBtn.hidden = !(state.bestLevel > 0 || state.bestScore > 0);
+      }
+
+      function renderPlay() {
+        const size = state.board ? state.board.size : Game.gridSize(state.level);
+        levelValue.textContent = `第 ${state.level} 关`;
+        levelDetail.textContent = `${size} × ${size} · ${Game.clarity(state.level)}`;
+        scoreValue.textContent = formatScore(state.score);
+        paintScoreDetail();
+        paintLives();
+        if (!state.feedback) {
+          hint.textContent = "找出颜色不同的一块";
+          hint.className = "hint";
+        } else if (state.feedback.type === "correct") {
+          hint.textContent = "对了";
+          hint.className = "hint good";
+        } else {
+          hint.textContent = "是这一块";
+          hint.className = "hint bad";
+        }
+        if (state.board) buildGrid();
+        paintSpeed();
+      }
+
+      function renderOver() {
+        overTitle.textContent = `来到第 ${state.level} 关`;
+        overScore.textContent = `得分 ${formatScore(state.score)}`;
+        overStreak.textContent = state.bestStreak > 0 ? `最长连续 ${state.bestStreak}` : "还没有答对";
+        const fresh = didSetRecord();
+        newRecord.hidden = !fresh;
+        if (!fresh && (state.baselineLevel > 0 || state.baselineScore > 0)) {
+          oldRecord.hidden = false;
+          oldRecord.textContent = `最佳仍是 第 ${Math.max(state.baselineLevel, 1)} 关 · ${formatScore(state.baselineScore)} 分`;
+        } else {
+          oldRecord.hidden = true;
+          oldRecord.textContent = "";
+        }
+      }
+
+      function render() {
+        title.hidden = state.phase !== "title";
+        play.hidden = state.phase !== "playing";
+        over.hidden = state.phase !== "over";
+        document.title = state.phase === "playing" ? `绝对色感 · 第 ${state.level} 关` : "绝对色感";
+        if (state.phase === "title") renderTitle();
+        if (state.phase === "playing") {
+          renderPlay();
+          fitBoard();
+        }
+        if (state.phase === "over") renderOver();
+        const active = document.activeElement;
+        if (active && active !== document.body && active.closest("[hidden]")) active.blur();
+      }
+
+      function deal() {
+        state.board = Game.makeBoard(state.level, state.rng);
+        state.startedAt = performance.now();
+        state.locked = false;
+        state.feedback = null;
+        state.frozenSpeed = null;
+        state.lastGain = 0;
+        if (state.level > 1) commitRecord();
+        render();
+      }
+
+      function startGame() {
+        cancelPending();
+        closeModal();
+        state.phase = "playing";
+        state.level = 1;
+        state.lives = LIVES;
+        state.score = 0;
+        state.streak = 0;
+        state.bestStreak = 0;
+        state.lastGain = 0;
+        state.baselineLevel = state.bestLevel;
+        state.baselineScore = state.bestScore;
+        deal();
+      }
+
+      function showTitle() {
+        cancelPending();
+        state.phase = "title";
+        state.locked = false;
+        state.feedback = null;
+        state.frozenSpeed = null;
+        state.board = null;
+        render();
+      }
+
+      function pick(index) {
+        if (state.phase !== "playing" || state.locked || !state.board) return;
+        if (index < 0 || index >= state.board.size * state.board.size) return;
+        const elapsed = (performance.now() - state.startedAt) / 1000;
+        state.frozenSpeed = clamp((SPEED_WINDOW - elapsed) / SPEED_WINDOW, 0, 1);
+        state.locked = true;
+        if (index === state.board.oddIndex) {
+          state.streak += 1;
+          state.bestStreak = Math.max(state.bestStreak, state.streak);
+          state.lastGain = Game.points(state.level, elapsed, state.streak);
+          state.score += state.lastGain;
+          state.feedback = { type: "correct" };
+          render();
+          after(0.42, () => {
+            state.level += 1;
+            deal();
+          });
+          return;
+        }
+        state.lives -= 1;
+        state.streak = 0;
+        state.feedback = { type: "wrong", picked: index };
+        if (state.score > 0 || state.level > 1) commitRecord();
+        const ended = state.lives <= 0;
+        render();
+        after(0.92, () => {
+          if (ended) {
+            state.phase = "over";
+            state.locked = false;
+            state.feedback = null;
+            render();
+          } else {
+            deal();
+          }
+        });
+      }
+
+      function setBehindModal(inert) {
+        title.inert = inert;
+        play.inert = inert;
+        over.inert = inert;
+      }
+
+      function openModal() {
+        setBehindModal(true);
+        modal.hidden = false;
+        modalOk.focus();
+      }
+
+      function closeModal() {
+        if (modal.hidden) return;
+        modal.hidden = true;
+        setBehindModal(false);
+      }
+
+      function clearRecords() {
+        state.bestLevel = 0;
+        state.bestScore = 0;
+        state.baselineLevel = 0;
+        state.baselineScore = 0;
+        try {
+          localStorage.removeItem(STORAGE_LEVEL);
+          localStorage.removeItem(STORAGE_SCORE);
+        } catch {
+          /* 忽略无法写入的存储 */
+        }
+        closeModal();
+        render();
+      }
+
+      function onKey(event) {
+        if (event.repeat || event.metaKey || event.ctrlKey || event.altKey) return;
+        if (!modal.hidden) {
+          if (event.key === "Escape") {
+            event.preventDefault();
+            closeModal();
+          }
+          return;
+        }
+        const key = event.key;
+        if ((key === " " || key === "Enter") && event.target.closest && event.target.closest("button, a")) return;
+        if (key === " " || key === "Enter") {
+          if (state.phase === "title" || state.phase === "over") {
+            event.preventDefault();
+            startGame();
+          } else if (key === " ") {
+            event.preventDefault();
+          }
+          return;
+        }
+        if (key === "r" || key === "R") {
+          event.preventDefault();
+          startGame();
+        } else if (key === "Escape" && state.phase !== "title") {
+          event.preventDefault();
+          showTitle();
+        }
+      }
+
+      document.getElementById("start").addEventListener("click", startGame);
+      document.getElementById("again").addEventListener("click", startGame);
+      document.getElementById("home").addEventListener("click", showTitle);
+      clearBtn.addEventListener("click", openModal);
+      modalOk.addEventListener("click", clearRecords);
+      modalCancel.addEventListener("click", closeModal);
+      modal.addEventListener("click", (event) => {
+        if (event.target === modal) closeModal();
+      });
+      grid.addEventListener("click", (event) => {
+        const tile = event.target.closest(".tile");
+        if (!tile || !grid.contains(tile)) return;
+        pick(Number(tile.dataset.index));
+      });
+      grid.addEventListener("contextmenu", (event) => event.preventDefault());
+      window.addEventListener("keydown", onKey);
+      window.addEventListener("resize", fitBoard);
+      if (typeof ResizeObserver !== "undefined") {
+        const observer = new ResizeObserver(() => fitBoard());
+        observer.observe(clusterWrap);
+      }
+
+      function tick() {
+        if (state.phase === "playing" && state.frozenSpeed == null && !play.hidden) paintSpeed();
+        window.requestAnimationFrame(tick);
+      }
+      window.requestAnimationFrame(tick);
+
+      if (new URLSearchParams(location.search).has("debug")) {
+        window.__absoluteSense = { state, Game, ColorScience, pick, startGame, showTitle };
+      }
+      render();
+    }
+
+    if (typeof document === "undefined") {
+      globalThis.runAbsoluteSenseSelfTest = selfTest;
+    } else {
+      document.addEventListener("DOMContentLoaded", boot);
+    }
+  </script>
+</body>
+</html>

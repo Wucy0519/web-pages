@@ -1,0 +1,1061 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light">
+<title>拼豆画板</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='10' cy='10' r='6' fill='%23ff3b4e'/%3E%3Ccircle cx='22' cy='10' r='6' fill='%23ffc400'/%3E%3Ccircle cx='10' cy='22' r='6' fill='%232f7bff'/%3E%3Ccircle cx='22' cy='22' r='6' fill='%2314c56e'/%3E%3C/svg%3E">
+<style>
+  :root {
+    --red: #ff3b4e;
+    --yellow: #ffc400;
+    --blue: #2f7bff;
+    --green: #14c56e;
+    --ink: #3a2a22;
+    --muted: #7d6b5e;
+    --paper: #fffaf4;
+    --line: #eadfce;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    min-height: 100%;
+    color: var(--ink);
+    font: 15px/1.5 "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+    background-color: #f6ecdf;
+    background-image: radial-gradient(rgba(120, 78, 32, 0.07) 1px, transparent 1.15px);
+    background-size: 18px 18px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  button { font: inherit; cursor: pointer; }
+  button:disabled { cursor: default; }
+  :focus-visible { outline: 3px solid #3a2a22; outline-offset: 2px; }
+  .app {
+    width: min(640px, 100%);
+    margin: 0 auto;
+    padding: 18px 14px calc(24px + env(safe-area-inset-bottom));
+  }
+  .top { display: flex; flex-wrap: wrap; gap: 10px 12px; align-items: center; }
+  .brand { display: flex; gap: 10px; align-items: center; flex: 1 1 200px; min-width: 0; }
+  .logo { width: 36px; height: 36px; display: grid; grid-template-columns: 1fr 1fr; gap: 4px; flex: none; }
+  .logo i { display: block; border-radius: 50%; box-shadow: inset 0 -2px 0 rgba(0,0,0,.16), inset 2px 2px 0 rgba(255,255,255,.45); }
+  .logo .r { background: var(--red); }
+  .logo .y { background: var(--yellow); }
+  .logo .b { background: var(--blue); }
+  .logo .g { background: var(--green); }
+  h1 { margin: 0; font-size: clamp(22px, 6vw, 28px); letter-spacing: -0.03em; line-height: 1.15; }
+  .sub { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+  .preview { margin-left: auto; text-align: center; }
+  .preview canvas {
+    display: block;
+    border-radius: 10px;
+    background: #f4eee4;
+    box-shadow: inset 0 0 0 1px var(--line);
+  }
+  .preview figcaption { margin: 2px 0 0; font-size: 11px; color: #8a7768; }
+  .meta {
+    display: flex;
+    gap: 12px;
+    margin: 12px 0 8px;
+    color: var(--muted);
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+  }
+  .meta b { color: var(--ink); font-weight: 700; }
+  .levels {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 2px 0 8px;
+    margin: 0 0 12px;
+  }
+  .pill {
+    border: 0;
+    background: var(--paper);
+    color: #6d5848;
+    border-radius: 999px;
+    padding: 7px 12px;
+    box-shadow: inset 0 0 0 1px var(--line);
+    white-space: nowrap;
+    font-weight: 700;
+  }
+  .pill.on { background: var(--ink); color: #fff; box-shadow: none; }
+  .stage-wrap { width: min(100%, 540px); margin: 0 auto; }
+  .stage-wrap.shake { animation: shakes .28s ease; }
+  @keyframes shakes {
+    0%, 100% { transform: translateX(0); }
+    30% { transform: translateX(-7px); }
+    70% { transform: translateX(7px); }
+  }
+  .stage {
+    display: grid;
+    grid-template-columns: clamp(40px, 12vw, 56px) 1fr clamp(40px, 12vw, 56px);
+    grid-template-rows: clamp(40px, 12vw, 56px) auto clamp(40px, 12vw, 56px);
+    width: 100%;
+    border-radius: 26px;
+    overflow: hidden;
+    background: conic-gradient(from -45deg, var(--yellow) 0 90deg, var(--blue) 0 90deg, var(--green) 0 90deg, var(--red) 0 90deg);
+    box-shadow: 0 18px 40px rgba(80, 42, 12, 0.16);
+    touch-action: none;
+    user-select: none;
+  }
+  .rail {
+    appearance: none;
+    border: 0;
+    margin: 0;
+    padding: 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    font-weight: 800;
+    font-size: 14px;
+    line-height: 1.15;
+    touch-action: none;
+    font-variant-numeric: tabular-nums;
+  }
+  .rail .arrow { font-size: 15px; line-height: 1; }
+  .rail b { font-weight: 800; }
+  .rail-top { grid-area: 1 / 2; background: var(--yellow); color: #4a3200; }
+  .rail-right { grid-area: 2 / 3; background: var(--blue); color: #fff; text-shadow: 0 1px 0 rgba(0,0,0,.15); }
+  .rail-bottom { grid-area: 3 / 2; background: var(--green); color: #06381f; }
+  .rail-left { grid-area: 2 / 1; background: var(--red); color: #fff; text-shadow: 0 1px 0 rgba(0,0,0,.15); }
+  .rail:hover { filter: brightness(1.06); }
+  .rail.hot { box-shadow: inset 0 0 0 3px rgba(255,255,255,.7); filter: brightness(1.08); }
+  .rail.popped { animation: railpop .35s ease; }
+  .rail.hinting { animation: hintpulse .55s ease-in-out 3; }
+  @keyframes railpop { from { filter: brightness(1.35); } to { filter: brightness(1); } }
+  @keyframes hintpulse {
+    50% { box-shadow: inset 0 0 0 4px rgba(255,255,255,.9); filter: brightness(1.14); }
+  }
+  .rail-top:focus-visible, .rail-bottom:focus-visible { outline-color: #3a2a22; }
+  .rail-left:focus-visible, .rail-right:focus-visible { outline-color: #fff; }
+  .board {
+    grid-area: 2 / 2;
+    position: relative;
+    width: 100%;
+    aspect-ratio: var(--cols) / var(--rows);
+    background-color: #f4eee4;
+    background-image: radial-gradient(circle at center, #ddd4c6 1.35px, #cfc6b8 1.7px, transparent 2.15px);
+    background-size: calc(100% / var(--cols)) calc(100% / var(--rows));
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.65);
+    cursor: grab;
+    touch-action: none;
+  }
+  .board:active { cursor: grabbing; }
+  .layer { position: absolute; inset: 0; }
+  .bead {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: var(--bead);
+    height: var(--bead);
+    border-radius: 50%;
+    transform: translate(var(--x), var(--y)) translate(-50%, -50%);
+    z-index: 1;
+    background:
+      radial-gradient(circle at 50% 48%, transparent 0 13%, rgba(0,0,0,.28) 14.5% 18%, transparent 19%),
+      radial-gradient(circle at 32% 28%, rgba(255,255,255,.95) 0 6%, rgba(255,255,255,.28) 13%, transparent 22%),
+      radial-gradient(circle at 50% 64%, var(--deep) 0%, var(--hex) 48%, var(--lite) 100%);
+    box-shadow:
+      inset 0 -4px 5px rgba(0,0,0,.18),
+      inset 0 3px 3px rgba(255,255,255,.35),
+      0 1px 0 rgba(80,40,10,.16),
+      0 3px 5px rgba(80,40,10,.08);
+  }
+  .bead::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 26%;
+    height: 26%;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    background: radial-gradient(circle at 38% 32%, #fff 0 16%, #f4eee4 42%, #d2c8b8 100%);
+    box-shadow: 0 0 0 1px rgba(0,0,0,.14), inset 0 1px 1px rgba(255,255,255,.8);
+  }
+  .bead.r { --hex: #ff3b4e; --deep: #d0122a; --lite: #ffb3bc; }
+  .bead.y { --hex: #ffc400; --deep: #e09600; --lite: #ffe28a; }
+  .bead.b { --hex: #2f7bff; --deep: #1a4fd0; --lite: #b9d2ff; }
+  .bead.g { --hex: #14c56e; --deep: #0b8d4b; --lite: #b6f0d2; }
+  .board.anim .bead { transition: transform var(--dur) cubic-bezier(.18, .72, .2, 1); will-change: transform; }
+  .board.anim .bead.pop { transition: none; animation: pop .18s ease forwards; z-index: 4; }
+  @keyframes pop {
+    0% { transform: translate(var(--x), var(--y)) translate(-50%, -50%) scale(1); filter: brightness(1); }
+    35% { transform: translate(var(--x), var(--y)) translate(-50%, -50%) scale(1.2); filter: brightness(1.3); }
+    100% { transform: translate(var(--x), var(--y)) translate(-50%, -50%) scale(.15); opacity: 0; }
+  }
+  .spark {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 7px;
+    height: 7px;
+    margin: -3.5px 0 0 -3.5px;
+    border-radius: 50%;
+    background: var(--hex);
+    transform: translate(var(--x), var(--y));
+    animation: fly .4s ease-out forwards;
+    pointer-events: none;
+    z-index: 5;
+  }
+  .spark.r { --hex: #ff3b4e; }
+  .spark.y { --hex: #ffc400; }
+  .spark.b { --hex: #2f7bff; }
+  .spark.g { --hex: #14c56e; }
+  @keyframes fly {
+    to { transform: translate(calc(var(--x) + var(--dx)), calc(var(--y) + var(--dy))) scale(.25); opacity: 0; }
+  }
+  .note { min-height: 1.5em; margin: 10px 0 0; text-align: center; color: var(--muted); font-size: 13px; }
+  .toolbar { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .toolbar button, .ghost, .primary { border-radius: 999px; }
+  .toolbar button {
+    background: var(--paper);
+    color: #4a382e;
+    border: 0;
+    padding: 9px 14px;
+    font-weight: 700;
+    box-shadow: inset 0 0 0 1px var(--line);
+  }
+  .toolbar button:hover { background: #fff; }
+  body.is-busy .toolbar button:disabled,
+  .toolbar button:disabled { opacity: .4; }
+  body.is-busy .pill { pointer-events: none; }
+  .modal {
+    position: fixed;
+    inset: 0;
+    z-index: 8;
+    display: grid;
+    place-items: center;
+    padding: 20px;
+    background: rgba(48, 28, 12, .38);
+  }
+  .modal[hidden] { display: none; }
+  .dialog {
+    width: min(100%, 340px);
+    background: var(--paper);
+    border-radius: 24px;
+    padding: 22px 20px 16px;
+    text-align: center;
+    box-shadow: 0 24px 60px rgba(40, 20, 0, .22);
+  }
+  .dialog h2 { margin: 0; font-size: 26px; letter-spacing: -0.03em; }
+  .dialog p { margin: 8px 0 0; color: var(--muted); }
+  .actions { display: flex; flex-direction: column; gap: 4px; margin-top: 16px; }
+  .primary {
+    background: var(--red);
+    color: #fff;
+    border: 0;
+    padding: 12px 16px;
+    font-weight: 800;
+  }
+  .primary:hover { background: #e4273a; }
+  .ghost { background: transparent; border: 0; color: var(--muted); font-weight: 700; padding: 8px; }
+  @media (prefers-reduced-motion: reduce) {
+    .board.anim .bead { transition: none; }
+    .bead.pop { animation: none; opacity: 0; }
+    .spark { animation: none; }
+    .stage-wrap.shake { animation: none; }
+  }
+</style>
+</head>
+<body><style>
+a.catalog-back{position:fixed;top:12px;left:12px;z-index:9999;display:inline-flex;align-items:center;padding:6px 12px;border-radius:999px;background:rgba(255,250,243,.94);color:#241c14;border:1px solid #e3d3be;text-decoration:none;font:14px/1.4 "PingFang SC","Hiragino Sans GB","Noto Sans SC",sans-serif;box-shadow:0 6px 16px rgba(60,40,20,.08)}
+a.catalog-back:hover{border-color:#9d2c1a;color:#9d2c1a}
+</style>
+<a class="catalog-back" href="../../index.html">返回目录</a>
+
+<div class="app">
+  <header class="top">
+    <div class="brand">
+      <div class="logo" aria-hidden="true"><i class="r"></i><i class="y"></i><i class="b"></i><i class="g"></i></div>
+      <div>
+        <h1>拼豆画板</h1>
+        <p class="sub">滑动让所有拼豆一起跑。红豆碰到左边、黄豆碰到上边、蓝豆碰到右边、绿豆碰到下边，就会消失。</p>
+      </div>
+    </div>
+    <figure class="preview">
+      <canvas id="thumb" width="66" height="66"></canvas>
+      <figcaption>原图</figcaption>
+    </figure>
+  </header>
+  <p class="meta"><span id="progress">1 / 7</span><b id="remain">剩余 0</b><span id="steps">0 步</span></p>
+  <div class="levels" id="levels"></div>
+  <div class="stage-wrap" id="wrap">
+    <div class="stage" id="stage" tabindex="-1" aria-label="拼豆画板。滑动或按方向键，让豆子跑向同色的边">
+      <button type="button" class="rail rail-top" data-dir="up" data-color="y" aria-label="向上滑，黄边">
+        <span class="arrow" aria-hidden="true">↑</span><span>黄 <b id="n-y">0</b></span>
+      </button>
+      <button type="button" class="rail rail-left" data-dir="left" data-color="r" aria-label="向左滑，红边">
+        <span class="arrow" aria-hidden="true">←</span><span>红</span><b id="n-r">0</b>
+      </button>
+      <div class="board" id="board">
+        <div class="layer" id="layer"></div>
+      </div>
+      <button type="button" class="rail rail-right" data-dir="right" data-color="b" aria-label="向右滑，蓝边">
+        <span class="arrow" aria-hidden="true">→</span><span>蓝</span><b id="n-b">0</b>
+      </button>
+      <button type="button" class="rail rail-bottom" data-dir="down" data-color="g" aria-label="向下滑，绿边">
+        <span class="arrow" aria-hidden="true">↓</span><span>绿 <b id="n-g">0</b></span>
+      </button>
+    </div>
+  </div>
+  <p class="note" id="note" aria-live="polite"></p>
+  <div class="toolbar">
+    <button type="button" id="undo">撤销</button>
+    <button type="button" id="restart">重开</button>
+    <button type="button" id="hint">提示</button>
+    <button type="button" id="mute">静音</button>
+  </div>
+</div>
+<div class="modal" id="modal" hidden>
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <h2 id="modal-title">这幅清空了</h2>
+    <p id="modal-text"></p>
+    <div class="actions">
+      <button type="button" class="primary" id="next">下一幅</button>
+      <button type="button" class="ghost" id="again">再拼这幅</button>
+    </div>
+  </div>
+</div>
+<script>
+"use strict";
+
+const PALETTE = {
+  r: { name: "红", hex: "#ff3b4e" },
+  y: { name: "黄", hex: "#ffc400" },
+  b: { name: "蓝", hex: "#2f7bff" },
+  g: { name: "绿", hex: "#14c56e" }
+};
+const DIR = {
+  left: { dr: 0, dc: -1 },
+  right: { dr: 0, dc: 1 },
+  up: { dr: -1, dc: 0 },
+  down: { dr: 1, dc: 0 }
+};
+const DIR_LABEL = { left: "向左滑", right: "向右滑", up: "向上滑", down: "向下滑" };
+const SAVE_KEY = "bead-board-v1";
+
+const LEVELS = [
+  {
+    name: "入门",
+    rows: [
+      ".........",
+      "..yyy....",
+      "..yyy....",
+      ".........",
+      ".rr...bb.",
+      ".rr...bb.",
+      ".........",
+      "....ggg..",
+      "........."
+    ]
+  },
+  {
+    name: "爱心",
+    rows: [
+      "...........",
+      "....b.b....",
+      "...bbbbb...",
+      "..rr...rr..",
+      ".rrrr.rrrr.",
+      ".rrrrrrrrr.",
+      ".rrryyyrrr.",
+      "..rryyyrr..",
+      "..grrrrrg..",
+      "....rrr....",
+      "..........."
+    ]
+  },
+  {
+    name: "蘑菇",
+    rows: [
+      "...........",
+      "...yyyyy...",
+      "..yybybyy..",
+      ".yyyyyyyyy.",
+      ".yybbbbbby.",
+      "..yyyyyyy..",
+      "....rrr....",
+      "...rr.rr...",
+      "...rr.rr...",
+      "..ggggggg..",
+      "..........."
+    ]
+  },
+  {
+    name: "小屋",
+    rows: [
+      "...........",
+      ".....r.....",
+      "....rrr....",
+      "...rrrrr...",
+      "..rrrrrrr..",
+      ".yyyyyyyyy.",
+      ".yybbyybby.",
+      ".yyyyyyyyy.",
+      ".yyygggyyy.",
+      ".yyygggyyy.",
+      "..........."
+    ]
+  },
+  {
+    name: "小鸡",
+    rows: [
+      "...........",
+      "....bbb....",
+      "...yyyyy...",
+      "..yybybyy..",
+      "..yyyyyyy..",
+      "...yrry....",
+      "..yyyyyyy..",
+      ".yyyyyyyyy.",
+      "..yyyyyyy..",
+      "...gg.gg...",
+      "..........."
+    ]
+  },
+  {
+    name: "小花",
+    rows: [
+      "...........",
+      "..yy...yy..",
+      ".yyyy.yyyy.",
+      "..yyyyyyy..",
+      "...yrrry...",
+      "....rrr....",
+      "....ggg....",
+      ".....g.....",
+      "...bbbbb...",
+      "...........",
+      "..........."
+    ]
+  },
+  {
+    name: "星星",
+    rows: [
+      "...........",
+      ".....y.....",
+      "....yyy....",
+      "...yyyyy...",
+      ".byyyyyyyb.",
+      "..yyryryy..",
+      "...yy.yy...",
+      "..y..y..y..",
+      "..g..y..g..",
+      "...........",
+      "..........."
+    ]
+  }
+];
+
+const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const wait = (ms) => new Promise((resolve) => {
+  if (reduceMotion || ms <= 0) resolve();
+  else setTimeout(resolve, ms);
+});
+
+const board = document.getElementById("board");
+const layer = document.getElementById("layer");
+const stage = document.getElementById("stage");
+const wrap = document.getElementById("wrap");
+const noteEl = document.getElementById("note");
+const levelsEl = document.getElementById("levels");
+const progressEl = document.getElementById("progress");
+const remainEl = document.getElementById("remain");
+const stepsEl = document.getElementById("steps");
+const thumb = document.getElementById("thumb");
+const modal = document.getElementById("modal");
+const modalTitle = document.getElementById("modal-title");
+const modalText = document.getElementById("modal-text");
+const nextBtn = document.getElementById("next");
+const againBtn = document.getElementById("again");
+const undoBtn = document.getElementById("undo");
+const restartBtn = document.getElementById("restart");
+const hintBtn = document.getElementById("hint");
+const muteBtn = document.getElementById("mute");
+
+let rows = 0;
+let cols = 0;
+let beads = [];
+let nextId = 1;
+let levelIndex = 0;
+let moves = 0;
+let busy = false;
+let pending = null;
+let undoStack = [];
+let drag = null;
+let pointerHandled = false;
+let muted = false;
+const cleared = new Set();
+const els = new Map();
+let audioCtx = null;
+
+function clone(list) {
+  return list.map((b) => ({ id: b.id, color: b.color, r: b.r, c: b.c }));
+}
+function keyOf(list) {
+  return list.map((b) => b.color + "," + b.r + "," + b.c).sort().join("|");
+}
+function hit(b) {
+  return (b.c === 0 && b.color === "r")
+    || (b.c === cols - 1 && b.color === "b")
+    || (b.r === 0 && b.color === "y")
+    || (b.r === rows - 1 && b.color === "g");
+}
+function slide(list, dir) {
+  const w = cols;
+  const h = rows;
+  const occ = new Map();
+  for (const b of list) occ.set(b.r * w + b.c, b);
+  const order = list.slice().sort((a, b) => {
+    if (dir.dc < 0) return a.c - b.c;
+    if (dir.dc > 0) return b.c - a.c;
+    if (dir.dr < 0) return a.r - b.r;
+    return b.r - a.r;
+  });
+  let dist = 0;
+  for (const b of order) {
+    let r = b.r;
+    let c = b.c;
+    let d = 0;
+    while (true) {
+      const nr = r + dir.dr;
+      const nc = c + dir.dc;
+      if (nr < 0 || nc < 0 || nr >= h || nc >= w || occ.has(nr * w + nc)) break;
+      occ.delete(r * w + c);
+      r = nr;
+      c = nc;
+      occ.set(r * w + c, b);
+      d += 1;
+    }
+    if (d > dist) dist = d;
+    b.r = r;
+    b.c = c;
+  }
+  return dist;
+}
+function simulate(list, dirName, record) {
+  const dir = DIR[dirName];
+  let cur = clone(list);
+  const frames = [];
+  let guard = 0;
+  while (guard++ < 48) {
+    const popped = [];
+    const stay = [];
+    for (const b of cur) (hit(b) ? popped : stay).push(b);
+    if (popped.length) {
+      if (record) frames.push({ type: "pop", ids: popped.map((b) => b.id), colors: popped.map((b) => b.color) });
+      cur = stay;
+    }
+    const dist = slide(cur, dir);
+    if (dist > 0 && record) {
+      frames.push({
+        type: "slide",
+        ms: Math.min(340, 110 + dist * 22),
+        pos: cur.map((b) => ({ id: b.id, r: b.r, c: b.c }))
+      });
+    }
+    if (!popped.length && dist === 0) break;
+    if (dist === 0) break;
+  }
+  return { beads: cur, frames, changed: keyOf(cur) !== keyOf(list) };
+}
+function heur(list) {
+  let s = 0;
+  for (const b of list) {
+    if (b.color === "r") s += b.c;
+    else if (b.color === "b") s += cols - 1 - b.c;
+    else if (b.color === "y") s += b.r;
+    else s += rows - 1 - b.r;
+  }
+  return s + list.length * (rows + cols);
+}
+function findHint() {
+  const pq = [{ k: heur(beads), beads: clone(beads), path: [] }];
+  const seen = new Set([keyOf(beads)]);
+  let exp = 0;
+  let bestFirst = null;
+  let bestLeft = beads.length;
+  while (pq.length && exp < 2500) {
+    let bi = 0;
+    for (let i = 1; i < pq.length; i++) if (pq[i].k < pq[bi].k) bi = i;
+    const cur = pq.splice(bi, 1)[0];
+    exp += 1;
+    if (!cur.beads.length) return cur.path[0];
+    if (cur.path.length && cur.beads.length < bestLeft) {
+      bestLeft = cur.beads.length;
+      bestFirst = cur.path[0];
+    }
+    for (const name of Object.keys(DIR)) {
+      const next = simulate(cur.beads, name, false);
+      if (!next.changed) continue;
+      const k = keyOf(next.beads);
+      if (seen.has(k)) continue;
+      seen.add(k);
+      pq.push({
+        k: heur(next.beads) + (cur.path.length + 1) * 0.25,
+        beads: next.beads,
+        path: cur.path.concat(name)
+      });
+    }
+  }
+  if (bestFirst) return bestFirst;
+  let pick = null;
+  let score = Infinity;
+  for (const name of Object.keys(DIR)) {
+    const next = simulate(beads, name, false);
+    if (!next.changed) continue;
+    const s = heur(next.beads);
+    if (s < score) { score = s; pick = name; }
+  }
+  return pick;
+}
+
+function mount(b) {
+  const el = document.createElement("div");
+  el.className = "bead " + b.color;
+  el.style.setProperty("--x", "0px");
+  el.style.setProperty("--y", "0px");
+  el.setAttribute("role", "img");
+  el.setAttribute("aria-label", PALETTE[b.color].name + "豆");
+  layer.appendChild(el);
+  els.set(b.id, el);
+}
+function applyPositions() {
+  const rect = board.getBoundingClientRect();
+  if (!cols || !rows || rect.width < 2) return;
+  const cw = rect.width / cols;
+  const ch = rect.height / rows;
+  board.style.setProperty("--bead", (Math.min(cw, ch) * 0.86) + "px");
+  for (const b of beads) {
+    const el = els.get(b.id);
+    if (!el) continue;
+    el.style.setProperty("--x", ((b.c + 0.5) * cw) + "px");
+    el.style.setProperty("--y", ((b.r + 0.5) * ch) + "px");
+  }
+}
+function drawThumb(pattern) {
+  const cell = 6;
+  const w = pattern[0].length;
+  const h = pattern.length;
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  thumb.width = w * cell * dpr;
+  thumb.height = h * cell * dpr;
+  thumb.style.width = (w * cell) + "px";
+  thumb.style.height = (h * cell) + "px";
+  const g = thumb.getContext("2d");
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.clearRect(0, 0, w * cell, h * cell);
+  g.fillStyle = "#f4eee4";
+  g.fillRect(0, 0, w * cell, h * cell);
+  for (let r = 0; r < h; r++) {
+    for (let c = 0; c < w; c++) {
+      const ch = pattern[r][c];
+      const x = c * cell + cell / 2;
+      const y = r * cell + cell / 2;
+      if (!PALETTE[ch]) {
+        g.fillStyle = "#e3dacd";
+        g.beginPath();
+        g.arc(x, y, 0.9, 0, Math.PI * 2);
+        g.fill();
+      } else {
+        g.fillStyle = PALETTE[ch].hex;
+        g.beginPath();
+        g.arc(x, y, cell * 0.42, 0, Math.PI * 2);
+        g.fill();
+        g.fillStyle = "#fff6ea";
+        g.beginPath();
+        g.arc(x, y, cell * 0.12, 0, Math.PI * 2);
+        g.fill();
+      }
+    }
+  }
+}
+function renderPills() {
+  levelsEl.replaceChildren();
+  LEVELS.forEach((level, i) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "pill" + (i === levelIndex ? " on" : "");
+    btn.dataset.level = String(i);
+    btn.textContent = level.name + (cleared.has(i) ? " ✓" : "");
+    btn.setAttribute("aria-pressed", i === levelIndex ? "true" : "false");
+    levelsEl.appendChild(btn);
+  });
+}
+function updateHud() {
+  const tally = { r: 0, y: 0, b: 0, g: 0 };
+  for (const b of beads) tally[b.color] += 1;
+  for (const color of Object.keys(tally)) {
+    document.getElementById("n-" + color).textContent = String(tally[color]);
+  }
+  remainEl.textContent = "剩余 " + beads.length;
+  stepsEl.textContent = moves + " 步";
+  progressEl.textContent = (levelIndex + 1) + " / " + LEVELS.length + " · " + LEVELS[levelIndex].name;
+}
+function note(text) { noteEl.textContent = text; }
+function lock(on) {
+  busy = on;
+  document.body.classList.toggle("is-busy", on);
+  undoBtn.disabled = on;
+  restartBtn.disabled = on;
+  hintBtn.disabled = on || beads.length === 0;
+}
+function markHot(dir) {
+  document.querySelectorAll(".rail").forEach((el) => el.classList.toggle("hot", el.dataset.dir === dir));
+}
+function flashRails(colors) {
+  for (const color of new Set(colors)) {
+    const el = document.querySelector('.rail[data-color="' + color + '"]');
+    if (!el) continue;
+    el.classList.remove("popped");
+    void el.offsetWidth;
+    el.classList.add("popped");
+  }
+}
+function clearHint() {
+  document.querySelectorAll(".rail.hinting").forEach((el) => el.classList.remove("hinting"));
+}
+function bump() {
+  wrap.classList.remove("shake");
+  void wrap.offsetWidth;
+  wrap.classList.add("shake");
+}
+function sparksAt(x, y, color) {
+  if (reduceMotion) return;
+  const s = document.createElement("i");
+  s.className = "spark " + color;
+  const ang = Math.random() * Math.PI * 2;
+  const dist = 12 + Math.random() * 18;
+  s.style.setProperty("--x", x);
+  s.style.setProperty("--y", y);
+  s.style.setProperty("--dx", (Math.cos(ang) * dist) + "px");
+  s.style.setProperty("--dy", (Math.sin(ang) * dist) + "px");
+  layer.appendChild(s);
+  s.addEventListener("animationend", () => s.remove());
+}
+function sparks(b) {
+  const el = els.get(b.id);
+  if (!el) return;
+  for (let i = 0; i < 5; i++) sparksAt(el.style.getPropertyValue("--x"), el.style.getPropertyValue("--y"), b.color);
+}
+function celebrate() {
+  const rect = board.getBoundingClientRect();
+  const colors = ["r", "y", "b", "g"];
+  for (let i = 0; i < 16; i++) {
+    sparksAt((10 + Math.random() * (rect.width - 20)) + "px", (10 + Math.random() * (rect.height - 20)) + "px", colors[i % 4]);
+  }
+}
+function ac() {
+  if (muted) return null;
+  const Ctx = window.AudioContext || window.webkitAudioContext;
+  if (!Ctx) return null;
+  if (!audioCtx) audioCtx = new Ctx();
+  if (audioCtx.state === "suspended") audioCtx.resume();
+  return audioCtx;
+}
+function tone(freq, t, dur, type, vol) {
+  const c = ac();
+  if (!c) return;
+  const o = c.createOscillator();
+  const g = c.createGain();
+  o.type = type;
+  o.frequency.setValueAtTime(freq, t);
+  g.gain.setValueAtTime(vol, t);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g);
+  g.connect(c.destination);
+  o.start(t);
+  o.stop(t + dur + 0.02);
+}
+function playPop(colors) {
+  const c = ac();
+  if (!c) return;
+  const pitch = { r: 620, y: 784, b: 494, g: 392 };
+  [...new Set(colors)].slice(0, 3).forEach((color, i) => {
+    tone(pitch[color] || 600, c.currentTime + i * 0.025, 0.13, "sine", 0.045);
+  });
+}
+function chime() {
+  const c = ac();
+  if (!c) return;
+  [523, 659, 784, 1046].forEach((f, i) => tone(f, c.currentTime + i * 0.07, 0.18, "sine", 0.04));
+}
+function syncMute() {
+  muteBtn.textContent = muted ? "开声" : "静音";
+  muteBtn.setAttribute("aria-pressed", muted ? "true" : "false");
+}
+function save() {
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify({
+      level: levelIndex,
+      cleared: [...cleared],
+      muted
+    }));
+  } catch (err) { /* private mode */ }
+}
+function readSave() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    if (!data || typeof data.level !== "number") return null;
+    return data;
+  } catch (err) {
+    return null;
+  }
+}
+
+async function playSlideFrame(frame) {
+  const byId = new Map(beads.map((b) => [b.id, b]));
+  for (const p of frame.pos) {
+    const b = byId.get(p.id);
+    if (b) { b.r = p.r; b.c = p.c; }
+  }
+  board.style.setProperty("--dur", frame.ms + "ms");
+  board.classList.add("anim");
+  void board.offsetWidth;
+  applyPositions();
+  await wait(frame.ms + 24);
+}
+async function playPopFrame(frame) {
+  const set = new Set(frame.ids);
+  const popping = beads.filter((b) => set.has(b.id));
+  for (const b of popping) {
+    const el = els.get(b.id);
+    if (el) el.classList.add("pop");
+    sparks(b);
+  }
+  flashRails(frame.colors);
+  playPop(frame.colors);
+  await wait(180);
+  for (const b of popping) {
+    const el = els.get(b.id);
+    if (el) el.remove();
+    els.delete(b.id);
+  }
+  beads = beads.filter((b) => !set.has(b.id));
+  updateHud();
+}
+async function doMove(dir) {
+  if (!modal.hidden) return;
+  if (!DIR[dir]) return;
+  if (busy) { pending = dir; return; }
+  const sim = simulate(beads, dir, true);
+  if (!sim.changed) {
+    bump();
+    note("这个方向没有豆子能跑");
+    return;
+  }
+  lock(true);
+  undoStack.push({ moves, beads: clone(beads) });
+  moves += 1;
+  clearHint();
+  markHot(dir);
+  updateHud();
+  try {
+    for (const frame of sim.frames) {
+      if (frame.type === "pop") await playPopFrame(frame);
+      else await playSlideFrame(frame);
+    }
+  } finally {
+    lock(false);
+    markHot(null);
+    updateHud();
+  }
+  if (!beads.length) {
+    pending = null;
+    showWin();
+    return;
+  }
+  note("还剩 " + beads.length + " 颗");
+  const queued = pending;
+  pending = null;
+  if (queued) doMove(queued);
+}
+function showWin() {
+  cleared.add(levelIndex);
+  renderPills();
+  const last = levelIndex === LEVELS.length - 1;
+  modalTitle.textContent = last && cleared.size === LEVELS.length ? "全部清空了" : "这幅清空了";
+  modalText.textContent = "用了 " + moves + " 步";
+  note("全部消失了");
+  nextBtn.textContent = last ? "再来一轮" : "下一幅";
+  modal.hidden = false;
+  nextBtn.focus();
+  chime();
+  celebrate();
+  save();
+}
+function load(index) {
+  levelIndex = (index + LEVELS.length) % LEVELS.length;
+  const level = LEVELS[levelIndex];
+  rows = level.rows.length;
+  cols = level.rows[0].length;
+  board.style.setProperty("--cols", String(cols));
+  board.style.setProperty("--rows", String(rows));
+  moves = 0;
+  undoStack = [];
+  pending = null;
+  nextId = 1;
+  beads = [];
+  modal.hidden = true;
+  busy = false;
+  document.body.classList.remove("is-busy");
+  undoBtn.disabled = false;
+  restartBtn.disabled = false;
+  hintBtn.disabled = false;
+  level.rows.forEach((line, r) => {
+    [...line].forEach((ch, c) => {
+      if (PALETTE[ch]) beads.push({ id: nextId++, color: ch, r, c });
+    });
+  });
+  layer.replaceChildren();
+  els.clear();
+  board.classList.remove("anim");
+  for (const b of beads) mount(b);
+  layer.style.visibility = "hidden";
+  applyPositions();
+  layer.style.visibility = "visible";
+  drawThumb(level.rows);
+  renderPills();
+  updateHud();
+  clearHint();
+  note(levelIndex === 0
+    ? "向左滑，或点左边。红豆碰到红边就会消失。"
+    : "点一条边，或往那个方向滑。");
+  save();
+}
+function undo() {
+  if (busy) return;
+  const prev = undoStack.pop();
+  if (!prev) {
+    bump();
+    note("已经是这幅的开头");
+    return;
+  }
+  pending = null;
+  modal.hidden = true;
+  moves = prev.moves;
+  beads = clone(prev.beads);
+  layer.replaceChildren();
+  els.clear();
+  board.classList.remove("anim");
+  for (const b of beads) mount(b);
+  applyPositions();
+  updateHud();
+  note("撤销了上一步");
+}
+function hint() {
+  if (busy || !beads.length || !modal.hidden) return;
+  const dir = findHint();
+  clearHint();
+  if (!dir) {
+    note("可以撤销几步，换个方向");
+    return;
+  }
+  const el = document.querySelector('.rail[data-dir="' + dir + '"]');
+  if (el) {
+    el.classList.add("hinting");
+    window.setTimeout(() => el.classList.remove("hinting"), 1800);
+  }
+  note("试试" + DIR_LABEL[dir]);
+}
+
+stage.addEventListener("pointerdown", (e) => {
+  if (e.button != null && e.button !== 0) return;
+  drag = { x: e.clientX, y: e.clientY };
+  stage.setPointerCapture(e.pointerId);
+});
+stage.addEventListener("pointerup", (e) => {
+  if (!drag) return;
+  const dx = e.clientX - drag.x;
+  const dy = e.clientY - drag.y;
+  drag = null;
+  const arm = () => {
+    pointerHandled = true;
+    setTimeout(() => { pointerHandled = false; }, 0);
+  };
+  if (Math.hypot(dx, dy) < 28) {
+    const under = document.elementFromPoint(e.clientX, e.clientY);
+    const rail = under && under.closest ? under.closest(".rail") : null;
+    if (rail) {
+      arm();
+      doMove(rail.dataset.dir);
+    }
+    return;
+  }
+  arm();
+  const dir = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? "left" : "right") : (dy < 0 ? "up" : "down");
+  doMove(dir);
+});
+stage.addEventListener("pointercancel", () => { drag = null; });
+stage.addEventListener("contextmenu", (e) => e.preventDefault());
+document.querySelectorAll(".rail").forEach((el) => {
+  el.addEventListener("click", () => {
+    if (pointerHandled) {
+      pointerHandled = false;
+      return;
+    }
+    doMove(el.dataset.dir);
+  });
+});
+levelsEl.addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-level]");
+  if (!btn || busy) return;
+  load(Number(btn.dataset.level));
+});
+undoBtn.addEventListener("click", undo);
+restartBtn.addEventListener("click", () => { if (!busy) load(levelIndex); });
+hintBtn.addEventListener("click", hint);
+muteBtn.addEventListener("click", () => {
+  muted = !muted;
+  if (muted && audioCtx && audioCtx.state === "running") audioCtx.suspend();
+  syncMute();
+  save();
+});
+nextBtn.addEventListener("click", () => {
+  if (levelIndex === LEVELS.length - 1) {
+    cleared.clear();
+    load(0);
+  } else load(levelIndex + 1);
+});
+againBtn.addEventListener("click", () => load(levelIndex));
+window.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !modal.hidden) {
+    nextBtn.click();
+    return;
+  }
+  if (!modal.hidden) return;
+  const map = { ArrowLeft: "left", ArrowRight: "right", ArrowUp: "up", ArrowDown: "down" };
+  if (map[e.key]) {
+    e.preventDefault();
+    doMove(map[e.key]);
+  } else if ((e.key === "z" || e.key === "Z") && (e.metaKey || e.ctrlKey)) {
+    e.preventDefault();
+    undo();
+  }
+});
+new ResizeObserver(() => {
+  board.classList.remove("anim");
+  applyPositions();
+}).observe(board);
+
+const saved = readSave();
+if (saved) {
+  muted = !!saved.muted;
+  if (Array.isArray(saved.cleared)) {
+    saved.cleared.forEach((i) => {
+      if (i >= 0 && i < LEVELS.length) cleared.add(i);
+    });
+  }
+}
+syncMute();
+load(saved && saved.level >= 0 && saved.level < LEVELS.length ? saved.level : 0);
+</script>
+</body>
+</html>

@@ -1,0 +1,1982 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ff8fab">
+<title>开心消消乐</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='24' cy='36' r='14' fill='%23ff4d6d'/%3E%3Ccircle cx='42' cy='34' r='14' fill='%23e0314b'/%3E%3Cellipse cx='20' cy='30' rx='5' ry='3' fill='white' opacity='.7'/%3E%3C/svg%3E">
+<style>
+  :root {
+    --s: clamp(36px, calc((min(100vw, 520px) - 76px) / 8), 56px);
+    --g: 4px;
+    --ink: #7a2048;
+    --pink: #e64980;
+    --gold: #ffd43b;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    min-height: 100%;
+    color: var(--ink);
+    font-family: "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    background:
+      radial-gradient(circle at 12% 18%, #fff 0 8%, transparent 9%),
+      radial-gradient(circle at 88% 8%, #ffe066 0 10%, transparent 11%),
+      radial-gradient(circle at 80% 88%, #b2f2bb 0 14%, transparent 15%),
+      linear-gradient(165deg, #ffd0e4 0%, #fff1cc 42%, #d8f8e8 100%);
+  }
+  button, input { font: inherit; }
+  button { cursor: pointer; }
+  button:disabled { cursor: default; }
+  .sky { min-height: 100%; position: relative; overflow: hidden; }
+  .blob {
+    position: fixed; border-radius: 50%; filter: blur(2px); opacity: .45;
+    pointer-events: none; z-index: 0;
+  }
+  .b1 { width: 180px; height: 180px; background: #ffc9de; top: -40px; left: -50px; }
+  .b2 { width: 220px; height: 220px; background: #ffe8a3; top: 120px; right: -80px; }
+  .b3 { width: 160px; height: 160px; background: #b2f2bb; bottom: -30px; left: 20%; }
+  .app {
+    position: relative; z-index: 1;
+    width: min(520px, 100%);
+    margin: 0 auto;
+    padding: max(12px, env(safe-area-inset-top)) 14px calc(18px + env(safe-area-inset-bottom));
+  }
+  .top {
+    display: grid; grid-template-columns: 72px 1fr 72px;
+    align-items: center; margin-bottom: 8px;
+  }
+  .brand {
+    text-align: center; font-weight: 900; font-size: 22px; color: #fff;
+    text-shadow: 0 2px 0 #f06595, 0 4px 0 #c2255c;
+    letter-spacing: .06em;
+  }
+  .ghost {
+    height: 36px; border: none; border-radius: 999px;
+    background: rgba(255,255,255,.78); color: var(--pink);
+    font-weight: 800; padding: 0 10px;
+    box-shadow: 0 3px 0 rgba(230, 73, 128, .25);
+  }
+  .ghost:active { transform: translateY(2px); box-shadow: none; }
+  .sound { justify-self: end; width: 42px; padding: 0; display: grid; place-items: center; }
+  .hero { text-align: center; padding: 6px 0 8px; }
+  .hero h1 {
+    margin: 4px 0 0; font-size: 40px; font-weight: 900; color: #fff;
+    text-shadow: 0 3px 0 #f06595, 0 6px 0 #c2255c, 0 12px 18px rgba(190, 40, 90, .2);
+  }
+  .hero p { margin: 6px 0 12px; font-weight: 700; color: #9c3668; }
+  .hero-candies { display: flex; justify-content: center; gap: 4px; height: 62px; }
+  .hero-candy { width: 52px; height: 52px; animation: floaty 1.5s ease-in-out infinite; }
+  .hero-candy:nth-child(2) { animation-delay: .12s; }
+  .hero-candy:nth-child(3) { animation-delay: .24s; }
+  .hero-candy:nth-child(4) { animation-delay: .36s; }
+  .hero-candy:nth-child(5) { animation-delay: .48s; }
+  .btn-primary {
+    appearance: none; border: none; cursor: pointer;
+    background: linear-gradient(#ffe066, #ff922b);
+    color: #7c2d12; font-weight: 900; font-size: 18px;
+    border-radius: 999px; padding: 12px 32px;
+    box-shadow: 0 5px 0 #e8590c;
+  }
+  .btn-primary:active { transform: translateY(3px); box-shadow: 0 2px 0 #e8590c; }
+  .progress, .fine { text-align: center; font-weight: 800; color: #b84d78; }
+  .fine { font-size: 12px; font-weight: 650; opacity: .8; margin-top: 8px; }
+  .path-scroll { margin-top: 14px; }
+  .path {
+    position: relative; display: flex; flex-direction: column; gap: 18px;
+    padding: 8px 6% 24px;
+  }
+  .path::before {
+    content: ""; position: absolute; left: 50%; top: 8px; bottom: 12px;
+    border-left: 3px dashed rgba(255,255,255,.85);
+  }
+  .node-wrap { display: flex; width: 100%; position: relative; z-index: 1; }
+  .node-col { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+  .node {
+    width: 64px; height: 64px; border: none; border-radius: 50%;
+    color: #fff; font-weight: 900; font-size: 22px;
+    box-shadow: 0 6px 0 rgba(80, 0, 40, .18);
+    text-shadow: 0 2px 0 rgba(0,0,0,.15);
+    position: relative;
+  }
+  .node.c0 { background: radial-gradient(circle at 35% 30%, #ffb3c2, #e03154); }
+  .node.c1 { background: radial-gradient(circle at 35% 30%, #ffd8a8, #f76707); }
+  .node.c2 { background: radial-gradient(circle at 35% 30%, #fff3bf, #f59f00); color: #8a5a00; text-shadow: none; }
+  .node.c3 { background: radial-gradient(circle at 35% 30%, #b2f2bb, #2f9e44); }
+  .node.c4 { background: radial-gradient(circle at 35% 30%, #bac8ff, #4263eb); }
+  .node.c5 { background: radial-gradient(circle at 35% 30%, #eebefa, #9c36b5); }
+  .node.locked { background: #dee2e6; color: #868e96; box-shadow: none; text-shadow: none; }
+  .node.current { box-shadow: 0 0 0 4px #fff, 0 6px 0 rgba(80,0,40,.18); animation: pulse 1.15s ease-in-out infinite; }
+  .node .lock { position: absolute; right: -2px; bottom: -2px; font-style: normal; font-size: 14px; filter: none; }
+  .node-stars { display: flex; gap: 1px; height: 16px; }
+  .node-stars svg { width: 14px; height: 14px; }
+  .hud-line {
+    width: fit-content; margin: 2px auto 8px; padding: 4px 14px;
+    text-align: center; font-weight: 900; color: #c2255c; letter-spacing: .04em;
+    background: rgba(255,255,255,.82); border-radius: 999px;
+    box-shadow: 0 3px 0 rgba(255,255,255,.45);
+  }
+  .hud-row { display: flex; gap: 8px; align-items: stretch; }
+  .goal-card {
+    flex: 1; min-height: 74px;
+    background: rgba(255,255,255,.82);
+    border-radius: 18px; padding: 8px 12px;
+    box-shadow: 0 6px 0 rgba(255,255,255,.35);
+  }
+  .goal-kicker { font-size: 13px; font-weight: 800; color: #c2255c; }
+  .goal-score { font-weight: 800; color: #7a2048; margin-top: 2px; }
+  .goal-score b { font-size: 26px; line-height: 1.1; }
+  .moves-card {
+    width: 78px; flex: none; border-radius: 18px;
+    background: linear-gradient(#fff, #fff0f6);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    box-shadow: 0 6px 0 #f3c1d6;
+  }
+  .moves-card b { font-size: 30px; line-height: 1; color: var(--pink); }
+  .moves-card span { font-size: 12px; font-weight: 800; color: #c2255c; }
+  .moves-card.low { background: linear-gradient(#fff5f5, #ffe3e3); }
+  .moves-card.low b { color: #e03131; }
+  .moves-card.bump { animation: bump .25s ease; }
+  .bar {
+    height: 12px; border-radius: 999px; margin-top: 8px;
+    background: rgba(194, 37, 92, .16); overflow: hidden;
+    box-shadow: inset 0 2px 4px rgba(120, 20, 60, .12);
+  }
+  .bar > div {
+    height: 100%; width: 0; border-radius: inherit;
+    background: linear-gradient(90deg, #ffe066, #ff6b6b);
+    transition: width .25s ease;
+  }
+  .bar.full > div { background: linear-gradient(90deg, #8ce99a, #2f9e44); }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip {
+    display: flex; align-items: center; gap: 2px;
+    background: rgba(255,255,255,.7); border-radius: 999px;
+    padding: 1px 8px 1px 2px; font-weight: 900; font-size: 13px;
+  }
+  .chip svg { width: 26px; height: 26px; }
+  .chip.done { background: #d3f9d8; color: #2b8a3e; }
+  .board {
+    margin-top: 12px;
+    background:
+      linear-gradient(180deg, rgba(255,255,255,.4), transparent 26%),
+      linear-gradient(180deg, #9b6dff, #6d28d9 42%, #5b21b6);
+    border-radius: 28px;
+    border: 3px solid rgba(255, 214, 102, .95);
+    padding: 12px;
+    box-shadow: 0 1px 0 rgba(255,255,255,.55) inset, 0 10px 0 #4c1d95, 0 18px 28px rgba(76, 29, 149, .28);
+    touch-action: none;
+  }
+  .board.shake { animation: shake .28s linear; }
+  .board-inner { position: relative; border-radius: 16px; }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(8, var(--s));
+    grid-template-rows: repeat(8, var(--s));
+    gap: var(--g);
+    position: relative; z-index: 1;
+  }
+  .cell { position: relative; width: var(--s); height: var(--s); border-radius: 12px; background: rgba(255,255,255,.14); }
+  .cell.alt { background: rgba(255,255,255,.24); }
+  .jelly {
+    display: none; position: absolute; inset: 3px; border-radius: 10px;
+    background: radial-gradient(circle at 32% 28%, #f1fbff, #74c0fc 46%, #1c7ed6);
+    box-shadow: inset 0 0 0 2px rgba(255,255,255,.7), 0 3px 0 #1864ab;
+  }
+  .cell[data-j="1"] .jelly, .cell[data-j="2"] .jelly { display: block; }
+  .cell[data-j="2"] .jelly {
+    box-shadow: inset 0 0 0 3px rgba(255,255,255,.9), inset 0 0 0 8px rgba(165, 216, 255, .95), 0 3px 0 #1864ab;
+  }
+  .pieces {
+    position: absolute; inset: 0; z-index: 2; overflow: hidden; border-radius: 16px;
+    pointer-events: none;
+  }
+  .fx { position: absolute; inset: 0; z-index: 4; pointer-events: none; overflow: visible; }
+  .piece {
+    position: absolute; left: 0; top: 0;
+    width: var(--s); height: var(--s);
+    transform: translate3d(calc(var(--x) + var(--dx, 0px)), calc(var(--y) + var(--dy, 0px)), 0);
+    transition: transform var(--dur, 0ms) var(--ease, cubic-bezier(.18,.8,.2,1)) var(--delay, 0ms);
+    pointer-events: none;
+  }
+  .candy { width: 100%; height: 100%; padding: 6%; box-sizing: border-box; filter: drop-shadow(0 3px 1px rgba(60,0,40,.28)); }
+  .piece.on { z-index: 3; }
+  .piece.on .candy { animation: floaty .5s ease-in-out infinite; }
+  .piece.hint .candy { animation: hint 0.7s ease-in-out infinite; }
+  .piece.press .candy { filter: drop-shadow(0 2px 0 rgba(60,0,40,.25)) brightness(1.08); }
+  .piece.pop { z-index: 5; }
+  .piece.pop .candy { animation: pop .2s ease forwards; }
+  .piece.born .candy { animation: born .28s cubic-bezier(.2,1.5,.3,1); }
+  .piece.deny .candy { animation: deny .22s ease; }
+  .tip { text-align: center; font-size: 13px; font-weight: 700; color: #9c3668; min-height: 1.2em; margin: 10px 0 0; }
+  .tools { display: flex; gap: 8px; justify-content: center; margin-top: 8px; }
+  .tools button, .modal-actions button {
+    appearance: none; border: none; background: #fff; color: #9c3668;
+    font-weight: 800; border-radius: 999px; padding: 10px 16px;
+    box-shadow: 0 4px 0 #f3c1d6;
+  }
+  .tools button:active, .modal-actions button:active { transform: translateY(2px); box-shadow: 0 1px 0 #f3c1d6; }
+  .spark {
+    position: absolute; width: 8px; height: 8px; margin: -4px 0 0 -4px; border-radius: 50%;
+    animation: spark .46s ease-out forwards;
+  }
+  .floater {
+    position: absolute; transform: translate(-50%, -30%);
+    font-weight: 900; font-size: 18px; color: #fff;
+    text-shadow: 0 2px 0 #e8590c;
+    animation: floatUp .72s ease forwards; white-space: nowrap;
+  }
+  .combo-banner {
+    position: absolute; left: 50%; top: 46%; transform: translate(-50%, -50%) scale(.7);
+    background: linear-gradient(#fff, #ffe066); color: #d9480f;
+    font-weight: 900; font-size: 18px; padding: 8px 14px; border-radius: 999px;
+    box-shadow: 0 5px 0 #f08c00; animation: banner .78s ease forwards; white-space: nowrap;
+  }
+  .toast {
+    position: fixed; left: 50%; top: 16px; transform: translateX(-50%);
+    background: rgba(64, 16, 40, .9); color: #fff; font-weight: 800;
+    padding: 10px 16px; border-radius: 999px; z-index: 70;
+    max-width: calc(100% - 28px); text-align: center;
+  }
+  .modal {
+    position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; padding: 18px;
+  }
+  .modal-back { position: absolute; inset: 0; background: rgba(48, 16, 40, .46); }
+  .modal-card {
+    position: relative; width: min(360px, 100%);
+    background: linear-gradient(#fff, #fff7fb);
+    border-radius: 26px; padding: 22px 16px 16px; text-align: center;
+    box-shadow: 0 22px 50px rgba(80, 0, 40, .28);
+  }
+  .modal-card h2 { margin: 6px 0 4px; font-size: 28px; color: #c2255c; }
+  .modal-card p { margin: 6px 0; font-weight: 700; color: #7a2048; }
+  .star-row { display: flex; justify-content: center; gap: 6px; margin: 8px 0; }
+  .star-row svg { width: 42px; height: 42px; }
+  .star-row svg.on { animation: popstar .45s cubic-bezier(.2,1.4,.3,1) both; }
+  .modal-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 12px; }
+  .help { text-align: left; font-weight: 650; color: #5c2144; font-size: 14px; line-height: 1.55; }
+  .help b { color: #c2255c; }
+  .help-row { display: flex; gap: 8px; align-items: center; margin: 8px 0; }
+  .help-row .mini { width: 42px; height: 42px; flex: none; }
+  .confetti {
+    position: fixed; top: -12px; width: 9px; height: 14px; z-index: 80; border-radius: 2px;
+    animation: fall 1.15s ease-in forwards;
+  }
+  @keyframes bump { 40% { transform: scale(1.08); } }
+  @keyframes floaty { 50% { transform: translateY(-5px) scale(1.05); } }
+  @keyframes pulse { 50% { transform: translateY(-3px) scale(1.04); } }
+  @keyframes hint {
+    50% { filter: drop-shadow(0 0 6px #fff) drop-shadow(0 0 3px #ffd43b) brightness(1.08); }
+  }
+  @keyframes pop { 40% { transform: scale(1.18); opacity: 1; } 100% { transform: scale(.15); opacity: 0; } }
+  @keyframes born { 0% { transform: scale(0); } 100% { transform: scale(1); } }
+  @keyframes deny { 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+  @keyframes spark { to { transform: translate(var(--dx), var(--dy)) scale(.2); opacity: 0; } }
+  @keyframes floatUp { to { transform: translate(-50%, -130%); opacity: 0; } }
+  @keyframes banner {
+    0% { transform: translate(-50%, -50%) scale(.5); opacity: 0; }
+    18% { transform: translate(-50%, -50%) scale(1.08); opacity: 1; }
+    70% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+    100% { transform: translate(-50%, -70%) scale(.96); opacity: 0; }
+  }
+  @keyframes shake {
+    20% { transform: translateX(-3px); } 40% { transform: translateX(3px); }
+    60% { transform: translateX(-2px); } 80% { transform: translateX(2px); }
+  }
+  @keyframes popstar { 0% { transform: scale(0) rotate(-20deg); } 100% { transform: scale(1) rotate(0); } }
+  @keyframes fall { to { transform: translateY(105vh) rotate(var(--rot)); opacity: .15; } }
+  @media (max-width: 380px) { :root { --g: 3px; } .hero h1 { font-size: 34px; } }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: .01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: .01ms !important;
+    }
+  }
+</style>
+</head>
+<body><style>
+a.catalog-back{position:fixed;top:12px;left:12px;z-index:9999;display:inline-flex;align-items:center;padding:6px 12px;border-radius:999px;background:rgba(255,250,243,.94);color:#241c14;border:1px solid #e3d3be;text-decoration:none;font:14px/1.4 "PingFang SC","Hiragino Sans GB","Noto Sans SC",sans-serif;box-shadow:0 6px 16px rgba(60,40,20,.08)}
+a.catalog-back:hover{border-color:#9d2c1a;color:#9d2c1a}
+</style>
+<a class="catalog-back" href="../../index.html">返回目录</a>
+
+<div class="sky">
+  <div class="blob b1"></div>
+  <div class="blob b2"></div>
+  <div class="blob b3"></div>
+  <div class="app">
+    <header class="top">
+      <button type="button" class="ghost" id="btn-back">帮助</button>
+      <div class="brand">开心消消乐</div>
+      <button type="button" class="ghost sound" id="btn-sound" aria-label="音效"></button>
+    </header>
+
+    <section id="view-map">
+      <div class="hero">
+        <div class="hero-candies" id="hero-candies"></div>
+        <h1>开心消消乐</h1>
+        <p>交换相邻水果，三个连成一线</p>
+        <button type="button" class="btn-primary" id="btn-continue">开始游戏</button>
+        <p class="progress" id="progress"></p>
+      </div>
+      <div class="path-scroll">
+        <div class="path" id="path"></div>
+      </div>
+      <p class="fine">进度保存在这台浏览器里</p>
+    </section>
+
+    <section id="view-game" hidden>
+      <div class="hud-line" id="level-line"></div>
+      <div class="hud-row">
+        <div class="goal-card" id="goal-box"></div>
+        <div class="moves-card" id="moves-card"><b id="moves-num">0</b><span>步数</span></div>
+      </div>
+      <div class="bar" id="bar"><div id="bar-fill"></div></div>
+      <div class="board" id="board">
+        <div class="board-inner" id="board-inner">
+          <div class="grid" id="grid"></div>
+          <div class="pieces" id="pieces"></div>
+          <div class="fx" id="fx"></div>
+        </div>
+      </div>
+      <p class="tip" id="tip"></p>
+      <div class="tools">
+        <button type="button" id="btn-hint">提示</button>
+        <button type="button" id="btn-restart">重开</button>
+        <button type="button" id="btn-help">怎么玩</button>
+      </div>
+    </section>
+  </div>
+  <div class="modal" id="modal" hidden>
+    <div class="modal-back" data-act="back"></div>
+    <div class="modal-card" id="modal-card"></div>
+  </div>
+  <div class="toast" id="toast" hidden></div>
+</div>
+<script>
+'use strict';
+/* LOGIC_START */
+const ROWS = 8;
+const COLS = 8;
+const TYPE_N = 6;
+const NAMES = ['樱桃', '橙子', '柠檬', '苹果', '蓝莓', '葡萄'];
+const COLORS = ['#ff4d6d', '#ff922b', '#ffd43b', '#40c057', '#4c6ef5', '#be4bdb'];
+const LEVELS = [
+  { name: '甜蜜起步', moves: 20, types: 4, goal: { kind: 'score', score: 12000 }, stars: [12000, 22000, 28000] },
+  { name: '水果派对', moves: 22, types: 4, goal: { kind: 'score', score: 20000 }, stars: [20000, 34000, 42000] },
+  { name: '连消热身', moves: 22, types: 5, goal: { kind: 'score', score: 10000 }, stars: [10000, 14000, 16500] },
+  { name: '樱桃订单', moves: 22, types: 5, goal: { kind: 'collect', items: [{ t: 0, n: 24 }] }, stars: [4000, 12500, 15500] },
+  { name: '橙蓝拼盘', moves: 24, types: 5, goal: { kind: 'collect', items: [{ t: 1, n: 16 }, { t: 4, n: 16 }] }, stars: [5000, 13000, 18000] },
+  { name: '果冻布丁', moves: 24, types: 4, goal: { kind: 'jelly' }, stars: [6000, 22000, 40000], jelly: [
+    '00000000', '00000000', '00000000', '00000000', '00000000', '00000000', '11111111', '11111111'
+  ] },
+  { name: '高分时刻', moves: 24, types: 6, goal: { kind: 'score', score: 7000 }, stars: [7000, 9500, 11500] },
+  { name: '三色订单', moves: 26, types: 6, goal: { kind: 'collect', items: [{ t: 2, n: 14 }, { t: 3, n: 14 }, { t: 5, n: 14 }] }, stars: [4000, 10000, 15000] },
+  { name: '果冻相框', moves: 28, types: 5, goal: { kind: 'jelly' }, stars: [5000, 14000, 26000], jelly: [
+    '00000000', '01111110', '01000010', '01000010', '01000010', '01000010', '01111110', '00000000'
+  ] },
+  { name: '甜蜜风暴', moves: 24, types: 6, goal: { kind: 'score', score: 8000 }, stars: [8000, 10000, 13000] },
+  { name: '双层果冻', moves: 28, types: 4, goal: { kind: 'jelly' }, stars: [6000, 26000, 42000], jelly: [
+    '00000000', '00000000', '00000000', '00000000', '00000000', '00000000', '11111111', '22222222'
+  ] },
+  { name: '终章订单', moves: 26, types: 6, goal: { kind: 'collect', items: [{ t: 0, n: 18 }, { t: 5, n: 18 }] }, stars: [5000, 11000, 14000] }
+];
+
+let UID = 1;
+function randInt(n) { return Math.floor(Math.random() * n); }
+function make(type, special) { return { id: UID++, type: type, special: special || null }; }
+function inside(r, c) { return r >= 0 && c >= 0 && r < ROWS && c < COLS; }
+function makeGrid() {
+  const board = [];
+  for (let r = 0; r < ROWS; r++) {
+    const row = [];
+    for (let c = 0; c < COLS; c++) row.push(null);
+    board.push(row);
+  }
+  return board;
+}
+function swapCells(board, r1, c1, r2, c2) {
+  const t = board[r1][c1];
+  board[r1][c1] = board[r2][c2];
+  board[r2][c2] = t;
+}
+function wouldMatch(board, r, c, type) {
+  let n = 1;
+  let i = c - 1;
+  while (i >= 0 && board[r][i] && board[r][i].type === type) { n++; i--; }
+  i = c + 1;
+  while (i < COLS && board[r][i] && board[r][i].type === type) { n++; i++; }
+  if (n >= 3) return true;
+  n = 1;
+  i = r - 1;
+  while (i >= 0 && board[i][c] && board[i][c].type === type) { n++; i--; }
+  i = r + 1;
+  while (i < ROWS && board[i][c] && board[i][c].type === type) { n++; i++; }
+  return n >= 3;
+}
+function createBoard(types) {
+  const n = types || TYPE_N;
+  let last = null;
+  for (let attempt = 0; attempt < 40; attempt++) {
+    const board = makeGrid();
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        let type = 0;
+        for (let g = 0; g < 16; g++) {
+          type = randInt(n);
+          if (!wouldMatch(board, r, c, type)) break;
+        }
+        board[r][c] = make(type, null);
+      }
+    }
+    last = board;
+    if (!findGroups(board).length && findAllHints(board).length) return board;
+  }
+  return last;
+}
+function findGroups(board) {
+  const groups = [];
+  for (let r = 0; r < ROWS; r++) {
+    let c = 0;
+    while (c < COLS) {
+      const cell = board[r][c];
+      if (!cell || cell.type < 0) { c++; continue; }
+      let k = c + 1;
+      while (k < COLS && board[r][k] && board[r][k].type === cell.type) k++;
+      if (k - c >= 3) {
+        const cells = [];
+        for (let i = c; i < k; i++) cells.push({ r: r, c: i });
+        groups.push({ cells: cells, dir: 'h', len: k - c, type: cell.type });
+      }
+      c = k > c ? k : c + 1;
+    }
+  }
+  for (let c = 0; c < COLS; c++) {
+    let r = 0;
+    while (r < ROWS) {
+      const cell = board[r][c];
+      if (!cell || cell.type < 0) { r++; continue; }
+      let k = r + 1;
+      while (k < ROWS && board[k][c] && board[k][c].type === cell.type) k++;
+      if (k - r >= 3) {
+        const cells = [];
+        for (let i = r; i < k; i++) cells.push({ r: i, c: c });
+        groups.push({ cells: cells, dir: 'v', len: k - r, type: cell.type });
+      }
+      r = k > r ? k : r + 1;
+    }
+  }
+  return groups;
+}
+function isSpecialCombo(a, b) {
+  if (!a || !b) return false;
+  if (a.special === 'bomb' || b.special === 'bomb') return true;
+  return !!(a.special && b.special);
+}
+function findAllHints(board) {
+  const hints = [];
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const dirs = [[0, 1], [1, 0]];
+      for (let d = 0; d < dirs.length; d++) {
+        const r2 = r + dirs[d][0];
+        const c2 = c + dirs[d][1];
+        if (!inside(r2, c2)) continue;
+        const A = board[r][c];
+        const B = board[r2][c2];
+        if (!A || !B) continue;
+        if (isSpecialCombo(A, B)) {
+          hints.push({ r1: r, c1: c, r2: r2, c2: c2, score: A.special === 'bomb' || B.special === 'bomb' ? 60 : 46 });
+          continue;
+        }
+        swapCells(board, r, c, r2, c2);
+        const groups = findGroups(board);
+        swapCells(board, r, c, r2, c2);
+        if (!groups.length) continue;
+        let score = 0;
+        let max = 0;
+        let hasH = false;
+        let hasV = false;
+        for (let i = 0; i < groups.length; i++) {
+          score += groups[i].len;
+          if (groups[i].len > max) max = groups[i].len;
+          if (groups[i].dir === 'h') hasH = true;
+          else hasV = true;
+        }
+        if (max >= 5) score += 30;
+        else if (hasH && hasV) score += 22;
+        else if (max >= 4) score += 14;
+        hints.push({ r1: r, c1: c, r2: r2, c2: c2, score: score });
+      }
+    }
+  }
+  return hints;
+}
+function bestMove(state) {
+  const hints = findAllHints(state.board);
+  if (!hints.length) return null;
+  let best = hints[0];
+  let bestScore = -1e9;
+  for (let i = 0; i < hints.length; i++) {
+    const h = hints[i];
+    let s = h.score;
+    if (state.jelly) {
+      if (state.jelly[h.r1][h.c1] > 0) s += 5;
+      if (state.jelly[h.r2][h.c2] > 0) s += 5;
+    }
+    if (state.goal.kind === 'collect') {
+      const types = [state.board[h.r1][h.c1].type, state.board[h.r2][h.c2].type];
+      const items = state.goal.items;
+      for (let k = 0; k < items.length; k++) {
+        if ((state.got[items[k].t] || 0) < items[k].n && types.indexOf(items[k].t) >= 0) s += 6;
+      }
+    }
+    if (s > bestScore) { bestScore = s; best = h; }
+  }
+  return best;
+}
+function cellsOfType(board, type) {
+  const list = [];
+  if (type < 0) return list;
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const piece = board[r][c];
+      if (piece && piece.type === type) list.push({ r: r, c: c, piece: piece });
+    }
+  }
+  return list;
+}
+function chainFrom(board, initial, pre) {
+  const clear = new Set();
+  const activated = new Set(pre || []);
+  const queued = new Set();
+  const queue = [];
+  function add(r, c) {
+    if (!inside(r, c)) return;
+    const k = r + ',' + c;
+    clear.add(k);
+    const cell = board[r][c];
+    if (!cell || !cell.special || activated.has(k) || queued.has(k)) return;
+    queued.add(k);
+    queue.push([r, c]);
+  }
+  initial.forEach(function (k) {
+    const parts = k.split(',');
+    add(+parts[0], +parts[1]);
+  });
+  while (queue.length) {
+    const item = queue.shift();
+    const r = item[0];
+    const c = item[1];
+    const k = r + ',' + c;
+    if (activated.has(k)) continue;
+    activated.add(k);
+    const cell = board[r][c];
+    if (!cell) continue;
+    if (cell.special === 'h') {
+      for (let c2 = 0; c2 < COLS; c2++) add(r, c2);
+    } else if (cell.special === 'v') {
+      for (let r2 = 0; r2 < ROWS; r2++) add(r2, c);
+    } else if (cell.special === 'wrap') {
+      for (let dr = -1; dr <= 1; dr++) {
+        for (let dc = -1; dc <= 1; dc++) add(r + dr, c + dc);
+      }
+    } else if (cell.special === 'bomb') {
+      const types = [];
+      for (let rr = 0; rr < ROWS; rr++) {
+        for (let cc = 0; cc < COLS; cc++) {
+          const t = board[rr][cc] && board[rr][cc].type;
+          if (t >= 0 && types.indexOf(t) < 0) types.push(t);
+        }
+      }
+      if (types.length) {
+        const t = types[randInt(types.length)];
+        for (let rr = 0; rr < ROWS; rr++) {
+          for (let cc = 0; cc < COLS; cc++) {
+            if (board[rr][cc] && board[rr][cc].type === t) add(rr, cc);
+          }
+        }
+      }
+    }
+  }
+  return clear;
+}
+function planSpecials(groups, prefer) {
+  const parent = groups.map(function (_, i) { return i; });
+  function find(i) {
+    while (parent[i] !== i) {
+      parent[i] = parent[parent[i]];
+      i = parent[i];
+    }
+    return i;
+  }
+  function unite(a, b) { parent[find(a)] = find(b); }
+  const owner = new Map();
+  groups.forEach(function (g, i) {
+    for (let n = 0; n < g.cells.length; n++) {
+      const k = g.cells[n].r + ',' + g.cells[n].c;
+      if (owner.has(k)) unite(i, owner.get(k));
+      else owner.set(k, i);
+    }
+  });
+  const clusters = new Map();
+  groups.forEach(function (g, i) {
+    const f = find(i);
+    if (!clusters.has(f)) clusters.set(f, []);
+    clusters.get(f).push(g);
+  });
+  const spawns = [];
+  const used = new Set();
+  clusters.forEach(function (gs) {
+    let maxLen = 0;
+    let hasH = false;
+    let hasV = false;
+    const seen = new Set();
+    for (let i = 0; i < gs.length; i++) {
+      maxLen = Math.max(maxLen, gs[i].len);
+      if (gs[i].dir === 'h') hasH = true;
+      else hasV = true;
+      for (let n = 0; n < gs[i].cells.length; n++) seen.add(gs[i].cells[n].r + ',' + gs[i].cells[n].c);
+    }
+    let special = null;
+    if (maxLen >= 5) special = 'bomb';
+    else if (hasH && hasV) special = 'wrap';
+    else if (maxLen >= 4) special = gs.find(function (g) { return g.len >= 4; }).dir === 'h' ? 'h' : 'v';
+    if (!special) return;
+    let anchor = null;
+    const prefs = prefer || [];
+    for (let i = 0; i < prefs.length; i++) {
+      if (seen.has(prefs[i].r + ',' + prefs[i].c)) { anchor = prefs[i]; break; }
+    }
+    if (!anchor && special === 'wrap') {
+      for (let i = 0; i < gs.length && !anchor; i++) {
+        for (let n = 0; n < gs[i].cells.length; n++) {
+          const cell = gs[i].cells[n];
+          const inH = gs.some(function (x) {
+            return x.dir === 'h' && x.cells.some(function (q) { return q.r === cell.r && q.c === cell.c; });
+          });
+          const inV = gs.some(function (x) {
+            return x.dir === 'v' && x.cells.some(function (q) { return q.r === cell.r && q.c === cell.c; });
+          });
+          if (inH && inV) { anchor = cell; break; }
+        }
+      }
+    }
+    if (!anchor) {
+      const longest = gs.reduce(function (a, b) { return a.len >= b.len ? a : b; });
+      anchor = longest.cells[Math.floor((longest.cells.length - 1) / 2)];
+    }
+    const k = anchor.r + ',' + anchor.c;
+    if (used.has(k)) return;
+    used.add(k);
+    spawns.push({
+      r: anchor.r,
+      c: anchor.c,
+      type: special === 'bomb' ? -1 : gs[0].type,
+      special: special
+    });
+  });
+  return spawns;
+}
+function applyGravity(board) {
+  for (let c = 0; c < COLS; c++) {
+    let write = ROWS - 1;
+    for (let r = ROWS - 1; r >= 0; r--) {
+      const piece = board[r][c];
+      if (!piece) continue;
+      if (r !== write) {
+        board[write][c] = piece;
+        board[r][c] = null;
+      }
+      write--;
+    }
+  }
+}
+function fillEmpties(board, types) {
+  const nTypes = types || TYPE_N;
+  const drops = [];
+  for (let c = 0; c < COLS; c++) {
+    const holes = [];
+    for (let r = 0; r < ROWS; r++) if (!board[r][c]) holes.push(r);
+    const n = holes.length;
+    for (let i = 0; i < n; i++) {
+      const r = holes[i];
+      const piece = make(randInt(nTypes), null);
+      board[r][c] = piece;
+      drops.push({ id: piece.id, fromR: r - n, c: c, r: r });
+    }
+  }
+  return drops;
+}
+function finishClear(state, clearSet, spawnPlans, converted, combo, banner, rate) {
+  const cleared = [];
+  const jellyHits = [];
+  let base = 0;
+  clearSet.forEach(function (k) {
+    const parts = k.split(',');
+    const r = +parts[0];
+    const c = +parts[1];
+    const piece = state.board[r][c];
+    if (!piece) return;
+    cleared.push({ id: piece.id, r: r, c: c, type: piece.type, special: piece.special });
+    base += 40;
+    if (piece.special === 'h' || piece.special === 'v') base += 30;
+    else if (piece.special === 'wrap') base += 70;
+    else if (piece.special === 'bomb') base += 140;
+    if (piece.type >= 0) state.got[piece.type] += 1;
+    if (state.jelly && state.jelly[r][c] > 0) {
+      state.jelly[r][c] -= 1;
+      if (state.jelly[r][c] === 0) state.jellyLeft -= 1;
+      jellyHits.push({ r: r, c: c, left: state.jelly[r][c] });
+    }
+    state.board[r][c] = null;
+  });
+  const scale = rate == null ? 1 : rate;
+  const scoredCombo = scale < 1 ? 1 : Math.min(combo, 8);
+  let gain = base * scoredCombo;
+  const newIds = new Set();
+  const created = [];
+  for (let i = 0; i < spawnPlans.length; i++) {
+    const s = spawnPlans[i];
+    if (state.board[s.r][s.c]) continue;
+    const piece = make(s.type, s.special);
+    state.board[s.r][s.c] = piece;
+    newIds.add(piece.id);
+    created.push({ id: piece.id, r: s.r, c: s.c, type: s.type, special: s.special });
+    gain += s.special === 'bomb' ? 400 : s.special === 'wrap' ? 220 : 120;
+  }
+  if (banner === '超级彩虹') gain += 3000;
+  else if (banner === '彩虹条纹' || banner === '彩虹爆炸') gain += 800;
+  else if (banner === '大爆炸') gain += 400;
+  gain = Math.round(gain * scale);
+  state.score += gain;
+  const fromMap = new Map();
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const p = state.board[r][c];
+      if (p) fromMap.set(p.id, { r: r, c: c });
+    }
+  }
+  applyGravity(state.board);
+  const drops = fillEmpties(state.board, state.types);
+  for (let i = 0; i < drops.length; i++) {
+    fromMap.set(drops[i].id, { r: drops[i].fromR, c: drops[i].c });
+    newIds.add(drops[i].id);
+  }
+  const layout = [];
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const p = state.board[r][c];
+      if (!p) continue;
+      const from = fromMap.get(p.id) || { r: r, c: c };
+      layout.push({
+        id: p.id, type: p.type, special: p.special,
+        r: r, c: c, fromR: from.r, fromC: from.c, isNew: newIds.has(p.id)
+      });
+    }
+  }
+  let text = banner || '';
+  if (combo >= 2) text = text ? (text + ' · 连消×' + combo) : ('连消×' + combo);
+  return {
+    cleared: cleared,
+    created: created,
+    converted: converted || [],
+    layout: layout,
+    jellyHits: jellyHits,
+    scoreGain: gain,
+    combo: combo,
+    banner: text,
+    movesLeft: state.moves
+  };
+}
+function applyMatchWave(state, groups, prefer, combo, rate) {
+  const spawns = planSpecials(groups, prefer || []);
+  const initial = new Set();
+  for (let i = 0; i < groups.length; i++) {
+    for (let n = 0; n < groups[i].cells.length; n++) {
+      initial.add(groups[i].cells[n].r + ',' + groups[i].cells[n].c);
+    }
+  }
+  const clear = chainFrom(state.board, initial, new Set());
+  let banner = '';
+  if (spawns.some(function (s) { return s.special === 'bomb'; })) banner = '彩虹糖';
+  else if (spawns.some(function (s) { return s.special === 'wrap'; })) banner = '包装糖';
+  else if (spawns.length) banner = '条纹糖';
+  return finishClear(state, clear, spawns, [], combo, banner, rate);
+}
+function applyComboWave(state, p1, p2, combo) {
+  const a = state.board[p1.r][p1.c];
+  const b = state.board[p2.r][p2.c];
+  const converted = [];
+  const initial = new Set();
+  const pre = new Set();
+  let banner = '组合';
+  function markRow(set, r) {
+    if (r < 0 || r >= ROWS) return;
+    for (let c = 0; c < COLS; c++) set.add(r + ',' + c);
+  }
+  function markCol(set, c) {
+    if (c < 0 || c >= COLS) return;
+    for (let r = 0; r < ROWS; r++) set.add(r + ',' + c);
+  }
+  function markSquare(set, r, c, rad) {
+    for (let dr = -rad; dr <= rad; dr++) {
+      for (let dc = -rad; dc <= rad; dc++) {
+        const rr = r + dr, cc = c + dc;
+        if (inside(rr, cc)) set.add(rr + ',' + cc);
+      }
+    }
+  }
+  const bombA = a.special === 'bomb';
+  const bombB = b.special === 'bomb';
+  if (bombA && bombB) {
+    banner = '超级彩虹';
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        if (!state.board[r][c]) continue;
+        initial.add(r + ',' + c);
+        if (state.board[r][c].special) pre.add(r + ',' + c);
+      }
+    }
+  } else if (bombA || bombB) {
+    const other = bombA ? b : a;
+    const bombPos = bombA ? p1 : p2;
+    pre.add(bombPos.r + ',' + bombPos.c);
+    initial.add(bombPos.r + ',' + bombPos.c);
+    const list = cellsOfType(state.board, other.type);
+    if (!other.special) {
+      banner = '彩虹消除';
+      for (let i = 0; i < list.length; i++) {
+        const k = list[i].r + ',' + list[i].c;
+        initial.add(k);
+        pre.add(k);
+      }
+    } else if (other.special === 'h' || other.special === 'v') {
+      banner = '彩虹条纹';
+      for (let i = 0; i < list.length; i++) {
+        list[i].piece.special = i % 2 === 0 ? 'h' : 'v';
+        converted.push({
+          id: list[i].piece.id, r: list[i].r, c: list[i].c,
+          type: list[i].piece.type, special: list[i].piece.special
+        });
+        initial.add(list[i].r + ',' + list[i].c);
+      }
+    } else if (other.special === 'wrap') {
+      banner = '彩虹爆炸';
+      for (let i = 0; i < list.length; i++) {
+        list[i].piece.special = 'wrap';
+        converted.push({
+          id: list[i].piece.id, r: list[i].r, c: list[i].c,
+          type: list[i].piece.type, special: 'wrap'
+        });
+        initial.add(list[i].r + ',' + list[i].c);
+      }
+    }
+  } else {
+    pre.add(p1.r + ',' + p1.c);
+    pre.add(p2.r + ',' + p2.c);
+    const wrapA = a.special === 'wrap';
+    const wrapB = b.special === 'wrap';
+    if (wrapA && wrapB) {
+      banner = '大爆炸';
+      markSquare(initial, p1.r, p1.c, 2);
+      markSquare(initial, p2.r, p2.c, 2);
+    } else if (wrapA || wrapB) {
+      banner = '大十字';
+      const w = wrapA ? p1 : p2;
+      for (let d = -1; d <= 1; d++) {
+        markRow(initial, w.r + d);
+        markCol(initial, w.c + d);
+      }
+    } else {
+      banner = '十字清除';
+      markRow(initial, p1.r);
+      markCol(initial, p1.c);
+      markRow(initial, p2.r);
+      markCol(initial, p2.c);
+    }
+  }
+  const clear = chainFrom(state.board, initial, pre);
+  return finishClear(state, clear, [], converted, combo, banner);
+}
+function collapseAll(state, startCombo, prefer, rate) {
+  const waves = [];
+  let combo = startCombo;
+  let first = true;
+  let guard = 0;
+  while (guard < 80) {
+    const groups = findGroups(state.board);
+    if (!groups.length) break;
+    const wave = applyMatchWave(state, groups, first ? (prefer || []) : [], Math.min(combo, 8), rate);
+    if (!wave.cleared.length) break;
+    waves.push(wave);
+    first = false;
+    combo += 1;
+    guard += 1;
+  }
+  return waves;
+}
+function goalMet(state) {
+  const g = state.goal;
+  if (g.kind === 'score') return state.score >= g.score;
+  if (g.kind === 'jelly') return state.jellyLeft === 0;
+  if (g.kind === 'collect') {
+    for (let i = 0; i < g.items.length; i++) {
+      if (state.got[g.items[i].t] < g.items[i].n) return false;
+    }
+    return true;
+  }
+  return false;
+}
+function tryMove(state, r1, c1, r2, c2) {
+  if (!inside(r1, c1) || !inside(r2, c2)) return { ok: false };
+  if (Math.abs(r1 - r2) + Math.abs(c1 - c2) !== 1) return { ok: false };
+  const A = state.board[r1][c1];
+  const B = state.board[r2][c2];
+  if (!A || !B) return { ok: false };
+  const combo = isSpecialCombo(A, B);
+  swapCells(state.board, r1, c1, r2, c2);
+  const groups = findGroups(state.board);
+  if (!combo && !groups.length) {
+    swapCells(state.board, r1, c1, r2, c2);
+    return { ok: false, revert: true, id1: A.id, id2: B.id, r1: r1, c1: c1, r2: r2, c2: c2 };
+  }
+  state.moves -= 1;
+  let waves;
+  if (combo) {
+    waves = [applyComboWave(state, { r: r2, c: c2 }, { r: r1, c: c1 }, 1)];
+    waves = waves.concat(collapseAll(state, 2, [{ r: r2, c: c2 }, { r: r1, c: c1 }]));
+  } else {
+    waves = collapseAll(state, 1, [{ r: r2, c: c2 }, { r: r1, c: c1 }]);
+  }
+  const won = goalMet(state);
+  const lost = !won && state.moves <= 0;
+  const needShuffle = !won && !lost && findAllHints(state.board).length === 0;
+  return {
+    ok: true,
+    id1: A.id, id2: B.id,
+    r1: r1, c1: c1, r2: r2, c2: c2,
+    waves: waves, won: won, lost: lost, needShuffle: needShuffle,
+    movesLeft: state.moves
+  };
+}
+function simBonus(state) {
+  const waves = [];
+  let guard = 0;
+  while (state.moves > 0 && guard < 40) {
+    guard += 1;
+    const spots = [];
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) if (state.board[r][c]) spots.push([r, c]);
+    }
+    if (!spots.length) break;
+    state.moves -= 1;
+    const spot = spots[randInt(spots.length)];
+    const piece = state.board[spot[0]][spot[1]];
+    const roll = Math.random();
+    if (roll < 0.14) {
+      piece.type = -1;
+      piece.special = 'bomb';
+    } else {
+      piece.special = roll < 0.57 ? 'h' : 'v';
+    }
+    const converted = [{ id: piece.id, r: spot[0], c: spot[1], type: piece.type, special: piece.special }];
+    const clear = chainFrom(state.board, new Set([spot[0] + ',' + spot[1]]), new Set());
+    const banner = piece.special === 'bomb' ? '奖励彩虹' : '奖励条纹';
+    waves.push(finishClear(state, clear, [], converted, 1, banner, 0.4));
+    const more = collapseAll(state, 1, [], 0.4);
+    for (let i = 0; i < more.length; i++) waves.push(more[i]);
+  }
+  return waves;
+}
+function doShuffle(state) {
+  fillEmpties(state.board, state.types);
+  const pieces = [];
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) pieces.push(state.board[r][c]);
+  }
+  for (let attempt = 0; attempt < 50; attempt++) {
+    const bag = pieces.slice();
+    for (let i = bag.length - 1; i > 0; i--) {
+      const j = randInt(i + 1);
+      const t = bag[i]; bag[i] = bag[j]; bag[j] = t;
+    }
+    const board = makeGrid();
+    let k = 0;
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) board[r][c] = bag[k++];
+    }
+    if (!findGroups(board).length && findAllHints(board).length) {
+      state.board = board;
+      return;
+    }
+  }
+  state.board = createBoard(state.types);
+}
+function newGame(level) {
+  const types = level.types || TYPE_N;
+  let jelly = null;
+  let jellyLeft = 0;
+  let jellyTotal = 0;
+  if (level.jelly) {
+    jelly = level.jelly.map(function (row) { return row.split('').map(Number); });
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) if (jelly[r][c] > 0) { jellyLeft++; jellyTotal++; }
+    }
+  }
+  return {
+    level: level,
+    types: types,
+    board: createBoard(types),
+    score: 0,
+    moves: level.moves,
+    goal: level.goal,
+    got: [0, 0, 0, 0, 0, 0],
+    jelly: jelly,
+    jellyLeft: jellyLeft,
+    jellyTotal: jellyTotal
+  };
+}
+function calcStars(state) {
+  if (!goalMet(state)) return 0;
+  let n = 1;
+  if (state.score >= state.level.stars[1]) n = 2;
+  if (state.score >= state.level.stars[2]) n = 3;
+  return n;
+}
+function goalLabel(level) {
+  const g = level.goal;
+  if (g.kind === 'score') return '得到 ' + g.score + ' 分';
+  if (g.kind === 'jelly') return '消除全部果冻';
+  if (g.kind === 'collect') {
+    return g.items.map(function (it) { return NAMES[it.t] + ' ×' + it.n; }).join('、');
+  }
+  return '';
+}
+/* LOGIC_END */
+
+const REDUCE = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const T = function (ms) { return REDUCE ? Math.min(40, ms) : ms; };
+const SAVE_KEY = 'xiaoxiao-happy-v1';
+
+const viewMap = document.getElementById('view-map');
+const viewGame = document.getElementById('view-game');
+const backBtn = document.getElementById('btn-back');
+const soundBtn = document.getElementById('btn-sound');
+const continueBtn = document.getElementById('btn-continue');
+const pathEl = document.getElementById('path');
+const progressEl = document.getElementById('progress');
+const heroCandies = document.getElementById('hero-candies');
+const levelLine = document.getElementById('level-line');
+const goalBox = document.getElementById('goal-box');
+const movesCard = document.getElementById('moves-card');
+const movesNum = document.getElementById('moves-num');
+const bar = document.getElementById('bar');
+const barFill = document.getElementById('bar-fill');
+const boardEl = document.getElementById('board');
+const boardInner = document.getElementById('board-inner');
+const gridEl = document.getElementById('grid');
+const pieceLayer = document.getElementById('pieces');
+const fx = document.getElementById('fx');
+const tip = document.getElementById('tip');
+const modal = document.getElementById('modal');
+const modalCard = document.getElementById('modal-card');
+const toastEl = document.getElementById('toast');
+
+let save = loadSave();
+let state = null;
+let view = null;
+let levelIndex = 0;
+let busy = false;
+let modalOpen = false;
+let modalKind = '';
+let selected = null;
+let renderedMoves = -1;
+let S = 48;
+let G = 4;
+let pieceEls = new Map();
+let drag = null;
+let hintTimer = 0;
+let toastTimer = 0;
+let actx = null;
+let audioUnlocked = false;
+
+function loadSave() {
+  const blank = function () {
+    return {
+      unlocked: 1,
+      stars: Array(LEVELS.length).fill(0),
+      best: Array(LEVELS.length).fill(0),
+      sound: true,
+      coach: false
+    };
+  };
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return blank();
+    const data = JSON.parse(raw);
+    const base = blank();
+    base.unlocked = Math.min(LEVELS.length, Math.max(1, data.unlocked || 1));
+    base.sound = data.sound !== false;
+    base.coach = !!data.coach;
+    for (let i = 0; i < LEVELS.length; i++) {
+      base.stars[i] = data.stars && data.stars[i] ? data.stars[i] : 0;
+      base.best[i] = data.best && data.best[i] ? data.best[i] : 0;
+    }
+    return base;
+  } catch (err) {
+    return blank();
+  }
+}
+function persist() {
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (err) {}
+}
+function starSVG(on) {
+  const fill = on ? '#ffd43b' : '#e9ecef';
+  const stroke = on ? '#f08c00' : '#ced4da';
+  return '<svg viewBox="0 0 24 24" class="' + (on ? 'on' : '') + '"><polygon points="12,2 15,9 22,9 16.5,14 18.5,21 12,17 5.5,21 7.5,14 2,9 9,9" fill="' + fill + '" stroke="' + stroke + '" stroke-width="1.2" stroke-linejoin="round"/></svg>';
+}
+function stripes(dir) {
+  if (dir === 'h') {
+    return [24, 38, 52].map(function (y) {
+      return '<rect x="8" y="' + y + '" width="64" height="8" rx="4" fill="#fff" opacity=".9" stroke="rgba(0,0,0,.15)"/>';
+    }).join('');
+  }
+  return [24, 38, 52].map(function (x) {
+    return '<rect x="' + x + '" y="8" width="8" height="64" rx="4" fill="#fff" opacity=".9" stroke="rgba(0,0,0,.15)"/>';
+  }).join('');
+}
+function wrapMark() {
+  return '<circle cx="40" cy="42" r="30" fill="none" stroke="#fff" stroke-width="3.5" stroke-dasharray="8 6"/>' +
+    '<path d="M26 18 h10 l-5 8 z M44 18 h10 l-5 8 z" fill="#fff"/>' +
+    '<circle cx="40" cy="20" r="3.2" fill="#fff"/>';
+}
+function bombSvg() {
+  const cols = ['#ff4d6d', '#ff922b', '#ffd43b', '#40c057', '#4c6ef5', '#be4bdb'];
+  let s = '<circle cx="40" cy="40" r="30" fill="#fff"/>';
+  for (let i = 0; i < 6; i++) {
+    const a = (i / 6) * Math.PI * 2 - Math.PI / 2;
+    const x = (40 + Math.cos(a) * 16).toFixed(1);
+    const y = (40 + Math.sin(a) * 16).toFixed(1);
+    s += '<circle cx="' + x + '" cy="' + y + '" r="11" fill="' + cols[i] + '"/>';
+  }
+  s += '<circle cx="40" cy="40" r="11" fill="#fff"/>';
+  let d = '';
+  for (let i = 0; i < 10; i++) {
+    const rad = (i / 10) * Math.PI * 2 - Math.PI / 2;
+    const rr = i % 2 === 0 ? 7 : 3.2;
+    const x = (40 + Math.cos(rad) * rr).toFixed(1);
+    const y = (40 + Math.sin(rad) * rr).toFixed(1);
+    d += (i ? 'L' : 'M') + x + ' ' + y;
+  }
+  s += '<path d="' + d + 'Z" fill="#ff922b"/>';
+  return s;
+}
+function svgCandy(type, special) {
+  let body;
+  if (special === 'bomb' || type < 0) body = bombSvg();
+  else {
+    const fruits = [
+      '<circle cx="28" cy="48" r="16" fill="#ff4d6d"/><circle cx="50" cy="46" r="16" fill="#f03e5c"/>' +
+        '<ellipse cx="22" cy="42" rx="6" ry="4" fill="#fff" opacity=".7"/>' +
+        '<path d="M38 34 C40 16 52 12 60 16" stroke="#2f9e44" stroke-width="4" fill="none" stroke-linecap="round"/>' +
+        '<ellipse cx="62" cy="14" rx="8" ry="4.5" fill="#69db7c" transform="rotate(-30 62 14)"/>',
+      '<circle cx="40" cy="42" r="24" fill="#ff922b"/>' +
+        '<path d="M40 20 v44 M20 42 h40 M26 30c8 8 20 8 28 0 M26 54c8-8 20-8 28 0" stroke="#fff3bf" stroke-width="2" fill="none" opacity=".8"/>' +
+        '<ellipse cx="30" cy="32" rx="7" ry="4" fill="#fff" opacity=".65"/>' +
+        '<ellipse cx="58" cy="18" rx="8" ry="4" fill="#69db7c" transform="rotate(30 58 18)"/>',
+      '<ellipse cx="40" cy="42" rx="18" ry="26" fill="#ffd43b" transform="rotate(-18 40 42)"/>' +
+        '<ellipse cx="32" cy="32" rx="6" ry="8" fill="#fff" opacity=".55" transform="rotate(-18 32 32)"/>' +
+        '<path d="M40 16 v8" stroke="#e67700" stroke-width="3" stroke-linecap="round"/>',
+      '<circle cx="40" cy="44" r="22" fill="#40c057"/>' +
+        '<path d="M34 28 q8-16 14-6" stroke="#2b8a3e" stroke-width="4" fill="none" stroke-linecap="round"/>' +
+        '<ellipse cx="54" cy="24" rx="8" ry="4" fill="#8ce99a" transform="rotate(25 54 24)"/>' +
+        '<ellipse cx="30" cy="36" rx="7" ry="4" fill="#fff" opacity=".55"/>',
+      '<circle cx="40" cy="44" r="22" fill="#4c6ef5"/>' +
+        '<ellipse cx="30" cy="36" rx="7" ry="4" fill="#fff" opacity=".5"/>' +
+        '<path d="M28 26 q4-10 8 0 q4-10 8 0 q4-10 8 0" stroke="#91a7ff" stroke-width="3" fill="none" stroke-linecap="round"/>',
+      '<circle cx="40" cy="26" r="12" fill="#e599f7"/><circle cx="27" cy="42" r="12" fill="#cc5de8"/>' +
+        '<circle cx="53" cy="42" r="12" fill="#be4bdb"/><circle cx="40" cy="56" r="12" fill="#ae3ec9"/>' +
+        '<ellipse cx="34" cy="22" rx="4" ry="3" fill="#fff" opacity=".65"/>' +
+        '<path d="M40 14 v8" stroke="#2f9e44" stroke-width="3" stroke-linecap="round"/>'
+    ];
+    body = fruits[type] || fruits[0];
+    if (special === 'h' || special === 'v') body += stripes(special);
+    if (special === 'wrap') body += wrapMark();
+  }
+  return '<svg viewBox="0 0 80 80" aria-hidden="true">' + body + '</svg>';
+}
+function renderSound() {
+  const on = save.sound;
+  soundBtn.innerHTML = on
+    ? '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="#e64980" d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16 9a4 4 0 0 1 0 6" stroke="#e64980" stroke-width="2" fill="none" stroke-linecap="round"/></svg>'
+    : '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="#adb5bd" d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16 10l5 5M21 10l-5 5" stroke="#adb5bd" stroke-width="2" stroke-linecap="round"/></svg>';
+  soundBtn.setAttribute('aria-label', on ? '关闭音效' : '打开音效');
+}
+function ac() {
+  if (!save.sound || !audioUnlocked) return null;
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if (!AC) return null;
+  if (!actx) actx = new AC();
+  if (actx.state === 'suspended') actx.resume();
+  return actx;
+}
+function blip(freq, dur, type, gain, when) {
+  try {
+    const ctx = ac();
+    if (!ctx) return;
+    const t = ctx.currentTime + (when || 0);
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = type || 'sine';
+    o.frequency.setValueAtTime(freq, t);
+    g.gain.setValueAtTime(gain || 0.035, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(ctx.destination);
+    o.start(t); o.stop(t + dur + 0.02);
+  } catch (err) {}
+}
+function unlockAudio() {
+  audioUnlocked = true;
+  if (save.sound) ac();
+}
+function soundMatch(combo) { blip(620 + combo * 40, 0.09, 'triangle', 0.04); }
+function soundBad() { blip(160, 0.12, 'square', 0.02); }
+function soundWin() {
+  [523, 659, 784, 1046].forEach(function (f, i) { blip(f, 0.16, 'triangle', 0.04, i * 0.09); });
+}
+function soundLose() {
+  [392, 330, 262].forEach(function (f, i) { blip(f, 0.16, 'sine', 0.04, i * 0.1); });
+}
+function toast(msg) {
+  toastEl.textContent = msg;
+  toastEl.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function () { toastEl.hidden = true; }, 1700);
+}
+function wait(ms) { return new Promise(function (resolve) { setTimeout(resolve, ms); }); }
+function frame() { return new Promise(function (resolve) { requestAnimationFrame(resolve); }); }
+function continueIndex() {
+  const u = save.unlocked;
+  for (let i = 0; i < u; i++) if ((save.stars[i] || 0) < 3) return i;
+  return Math.max(0, u - 1);
+}
+function renderHero() {
+  const show = [[0, null], [1, 'h'], [3, null], [-1, 'bomb'], [5, 'wrap']];
+  heroCandies.innerHTML = show.map(function (item) {
+    return '<div class="hero-candy">' + svgCandy(item[0], item[1]) + '</div>';
+  }).join('');
+}
+function renderMap() {
+  const passed = save.stars.filter(function (n) { return n > 0; }).length;
+  progressEl.textContent = '已通过 ' + passed + ' / ' + LEVELS.length;
+  const any = passed > 0;
+  const next = continueIndex();
+  continueBtn.textContent = any ? ('继续第 ' + (next + 1) + ' 关') : '开始游戏';
+  pathEl.innerHTML = '';
+  const align = ['flex-start', 'center', 'flex-end', 'center'];
+  for (let i = 0; i < LEVELS.length; i++) {
+    const wrap = document.createElement('div');
+    wrap.className = 'node-wrap';
+    wrap.style.justifyContent = align[i % 4];
+    const col = document.createElement('div');
+    col.className = 'node-col';
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    const locked = i >= save.unlocked;
+    btn.className = 'node c' + (i % 6) + (locked ? ' locked' : '') + (!locked && i === next ? ' current' : '');
+    btn.innerHTML = String(i + 1) + (locked ? '<i class="lock">🔒</i>' : '');
+    if (locked) btn.disabled = true;
+    else btn.addEventListener('click', function () { startLevel(i); });
+    const stars = document.createElement('div');
+    stars.className = 'node-stars';
+    const n = save.stars[i] || 0;
+    stars.innerHTML = [0, 1, 2].map(function (k) { return starSVG(k < n); }).join('');
+    col.appendChild(btn);
+    col.appendChild(stars);
+    wrap.appendChild(col);
+    pathEl.appendChild(wrap);
+  }
+}
+function showMap() {
+  viewGame.hidden = true;
+  viewMap.hidden = false;
+  backBtn.dataset.mode = 'help';
+  backBtn.textContent = '帮助';
+  renderMap();
+  const cur = pathEl.querySelector('.current');
+  if (cur && save.stars.some(function (n) { return n > 0; })) cur.scrollIntoView({ block: 'center' });
+}
+function showGameScreen() {
+  viewMap.hidden = true;
+  viewGame.hidden = false;
+  backBtn.dataset.mode = 'map';
+  backBtn.textContent = '地图';
+}
+function takeView() {
+  return { score: state.score, moves: state.moves, got: state.got.slice(), jellyLeft: state.jellyLeft };
+}
+function measure() {
+  const a = gridEl.children[0];
+  const b = gridEl.children[1];
+  if (!a || !b) return;
+  const ra = a.getBoundingClientRect();
+  const rb = b.getBoundingClientRect();
+  if (ra.width < 2) return;
+  S = ra.width;
+  G = rb.left - ra.right;
+  if (!(G >= 0) || !isFinite(G)) G = 4;
+}
+function moveEl(el, r, c, animate, dist, delay, msOverride) {
+  if (!el) return;
+  const ms = !animate ? 0 : (msOverride != null ? msOverride : Math.min(540, T(150 + Math.abs(dist || 0) * 36)));
+  el.style.setProperty('--dur', ms + 'ms');
+  el.style.setProperty('--delay', (delay || 0) + 'ms');
+  el.style.setProperty('--ease', 'cubic-bezier(.18,.8,.2,1)');
+  el.style.setProperty('--dx', '0px');
+  el.style.setProperty('--dy', '0px');
+  el.style.setProperty('--x', (c * (S + G)) + 'px');
+  el.style.setProperty('--y', (r * (S + G)) + 'px');
+}
+function paint(el, p) {
+  el.dataset.type = String(p.type);
+  el.dataset.special = p.special || '';
+  el.innerHTML = '<div class="candy">' + svgCandy(p.type, p.special) + '</div>';
+}
+function spawn(p, r, c) {
+  const el = document.createElement('div');
+  el.className = 'piece';
+  el.dataset.id = String(p.id);
+  paint(el, p);
+  moveEl(el, r, c, false, 0);
+  pieceLayer.appendChild(el);
+  pieceEls.set(p.id, el);
+  return el;
+}
+function buildGrid() {
+  gridEl.innerHTML = '';
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const cell = document.createElement('div');
+      cell.className = 'cell' + ((r + c) % 2 ? ' alt' : '');
+      const jelly = document.createElement('div');
+      jelly.className = 'jelly';
+      cell.appendChild(jelly);
+      const layers = state.jelly ? state.jelly[r][c] : 0;
+      if (layers) cell.dataset.j = String(layers);
+      gridEl.appendChild(cell);
+    }
+  }
+}
+function setJelly(r, c, left) {
+  const cell = gridEl.children[r * COLS + c];
+  if (!cell) return;
+  if (left > 0) cell.dataset.j = String(left);
+  else delete cell.dataset.j;
+}
+function updateAllJelly() {
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) setJelly(r, c, state.jelly ? state.jelly[r][c] : 0);
+  }
+}
+function renderHUD() {
+  const level = LEVELS[levelIndex];
+  levelLine.textContent = '第 ' + (levelIndex + 1) + ' 关 · ' + level.name;
+  if (view.moves !== renderedMoves) {
+    movesNum.textContent = String(view.moves);
+    movesCard.classList.remove('bump');
+    void movesCard.offsetWidth;
+    movesCard.classList.add('bump');
+    renderedMoves = view.moves;
+  }
+  movesCard.classList.toggle('low', view.moves <= 5);
+  const g = level.goal;
+  let pct = 0;
+  let html = '';
+  if (g.kind === 'score') {
+    pct = g.score ? view.score / g.score : 0;
+    html = '<div class="goal-kicker">目标 ' + g.score + ' 分</div><div class="goal-score"><b>' + view.score + '</b></div>';
+    tip.textContent = '四个成条纹，五个成彩虹，L 形或 T 形会包装起来';
+  } else if (g.kind === 'collect') {
+    let got = 0;
+    let need = 0;
+    html = '<div class="chips">';
+    for (let i = 0; i < g.items.length; i++) {
+      const it = g.items[i];
+      const have = Math.min(it.n, view.got[it.t] || 0);
+      got += have;
+      need += it.n;
+      html += '<div class="chip' + (have >= it.n ? ' done' : '') + '">' + svgCandy(it.t, null) + '<span>' + have + '/' + it.n + '</span></div>';
+    }
+    html += '</div><div class="goal-score">分数 <b>' + view.score + '</b></div>';
+    pct = need ? got / need : 0;
+    tip.textContent = '把订单上的水果消掉就会收集。特殊水果可以一次收很多';
+  } else {
+    const cleared = (state.jellyTotal || 0) - view.jellyLeft;
+    pct = state.jellyTotal ? cleared / state.jellyTotal : 0;
+    html = '<div class="goal-kicker">果冻还剩 <b>' + view.jellyLeft + '</b> 块</div><div class="goal-score">分数 <b>' + view.score + '</b></div>';
+    tip.textContent = '在发亮的果冻上消除即可揭开。双层果冻要消两次';
+  }
+  goalBox.innerHTML = html;
+  barFill.style.width = Math.max(0, Math.min(100, pct * 100)) + '%';
+  bar.classList.toggle('full', pct >= 1);
+}
+function clearHint() {
+  clearTimeout(hintTimer);
+  pieceEls.forEach(function (el) { el.classList.remove('hint'); });
+}
+function flashHint() {
+  const h = bestMove(state);
+  if (!h) { toast('没有可以交换的水果'); return; }
+  clearHint();
+  const a = elAt(h.r1, h.c1);
+  const b = elAt(h.r2, h.c2);
+  if (a) a.classList.add('hint');
+  if (b) b.classList.add('hint');
+  hintTimer = setTimeout(clearHint, 2800);
+}
+function elAt(r, c) {
+  const p = state.board[r] && state.board[r][c];
+  return p ? pieceEls.get(p.id) : null;
+}
+function clearSel() {
+  selected = null;
+  pieceEls.forEach(function (el) { el.classList.remove('on'); });
+}
+function select(r, c) {
+  clearSel();
+  selected = { r: r, c: c };
+  const el = elAt(r, c);
+  if (el) el.classList.add('on');
+  blip(520, 0.05, 'sine', 0.03);
+}
+function burst(r, c, type) {
+  const color = type >= 0 ? COLORS[type] : '#ffd43b';
+  for (let i = 0; i < 6; i++) {
+    const el = document.createElement('i');
+    el.className = 'spark';
+    const ang = (Math.PI * 2 * i) / 6 + Math.random() * 0.5;
+    const dist = 16 + Math.random() * 20;
+    el.style.left = (c * (S + G) + S / 2) + 'px';
+    el.style.top = (r * (S + G) + S / 2) + 'px';
+    el.style.background = color;
+    el.style.setProperty('--dx', (Math.cos(ang) * dist) + 'px');
+    el.style.setProperty('--dy', (Math.sin(ang) * dist) + 'px');
+    fx.appendChild(el);
+    setTimeout(function () { el.remove(); }, 500);
+  }
+}
+function floater(r, c, text) {
+  const el = document.createElement('div');
+  el.className = 'floater';
+  el.textContent = text;
+  el.style.left = (c * (S + G) + S / 2) + 'px';
+  el.style.top = (r * (S + G) + S * 0.2) + 'px';
+  fx.appendChild(el);
+  setTimeout(function () { el.remove(); }, 760);
+}
+function showBanner(text) {
+  const old = fx.querySelector('.combo-banner');
+  if (old) old.remove();
+  const el = document.createElement('div');
+  el.className = 'combo-banner';
+  el.textContent = text;
+  fx.appendChild(el);
+  setTimeout(function () { if (el.parentNode) el.remove(); }, 820);
+}
+function shake() {
+  boardEl.classList.remove('shake');
+  void boardEl.offsetWidth;
+  boardEl.classList.add('shake');
+}
+function centroid(list) {
+  let r = 0;
+  let c = 0;
+  for (let i = 0; i < list.length; i++) { r += list[i].r; c += list[i].c; }
+  return { r: r / list.length, c: c / list.length };
+}
+async function playWaves(waves, opts) {
+  const fast = !!(opts && opts.fast);
+  for (let w = 0; w < waves.length; w++) {
+    const wave = waves[w];
+    if (wave.movesLeft != null) view.moves = wave.movesLeft;
+    for (let i = 0; i < wave.converted.length; i++) {
+      const conv = wave.converted[i];
+      const el = pieceEls.get(conv.id);
+      if (el) paint(el, conv);
+    }
+    if (wave.converted.length) await wait(T(fast ? 70 : 120));
+    const sample = wave.cleared.length > 28 ? 2 : 1;
+    for (let i = 0; i < wave.cleared.length; i++) {
+      const item = wave.cleared[i];
+      const el = pieceEls.get(item.id);
+      if (el) el.classList.add('pop');
+      if (i % sample === 0) burst(item.r, item.c, item.type);
+    }
+    if (wave.scoreGain && wave.cleared.length) {
+      const cen = centroid(wave.cleared);
+      floater(cen.r, cen.c, '+' + wave.scoreGain);
+      soundMatch(wave.combo || 1);
+    }
+    const noisy = fast && wave.banner.indexOf('奖励') === 0 && (wave.combo || 1) < 3;
+    if (wave.banner && !noisy) showBanner(wave.banner);
+    if (wave.cleared.length >= 18 || (wave.banner && wave.banner.indexOf('彩虹') >= 0)) shake();
+    view.score += wave.scoreGain || 0;
+    for (let i = 0; i < wave.cleared.length; i++) {
+      const t = wave.cleared[i].type;
+      if (t >= 0) view.got[t] = (view.got[t] || 0) + 1;
+    }
+    for (let i = 0; i < wave.jellyHits.length; i++) {
+      const hit = wave.jellyHits[i];
+      setJelly(hit.r, hit.c, hit.left);
+      if (hit.left === 0) view.jellyLeft = Math.max(0, view.jellyLeft - 1);
+    }
+    renderHUD();
+    if (wave.cleared.length) await wait(T(fast ? 90 : 180));
+    for (let i = 0; i < wave.cleared.length; i++) {
+      const el = pieceEls.get(wave.cleared[i].id);
+      if (el) { el.remove(); pieceEls.delete(wave.cleared[i].id); }
+    }
+    let maxDist = 0;
+    for (let i = 0; i < wave.layout.length; i++) {
+      const item = wave.layout[i];
+      maxDist = Math.max(maxDist, Math.abs(item.r - item.fromR));
+      if (!pieceEls.get(item.id)) {
+        const el = spawn(item, item.fromR, item.fromC);
+        if (item.isNew && item.fromR === item.r && item.fromC === item.c) el.classList.add('born');
+      }
+    }
+    const alive = new Set(wave.layout.map(function (item) { return item.id; }));
+    pieceEls.forEach(function (el, id) {
+      if (!alive.has(id)) { el.remove(); pieceEls.delete(id); }
+    });
+    void pieceLayer.offsetWidth;
+    for (let i = 0; i < wave.layout.length; i++) {
+      const item = wave.layout[i];
+      const moved = item.fromR !== item.r || item.fromC !== item.c;
+      const per = fast ? 18 : 36;
+      const base = fast ? 80 : 140;
+      moveEl(pieceEls.get(item.id), item.r, item.c, moved, item.r - item.fromR, 0, moved ? Math.min(480, T(base + Math.abs(item.r - item.fromR) * per)) : 0);
+    }
+    if (maxDist) await wait(Math.min(520, T((fast ? 80 : 140) + maxDist * (fast ? 18 : 36))) + T(30));
+  }
+}
+function syncToState() {
+  const alive = new Set();
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const p = state.board[r][c];
+      if (!p) continue;
+      alive.add(p.id);
+      if (!pieceEls.get(p.id)) spawn(p, r, c);
+      else moveEl(pieceEls.get(p.id), r, c, false, 0);
+    }
+  }
+  pieceEls.forEach(function (el, id) {
+    if (!alive.has(id)) { el.remove(); pieceEls.delete(id); }
+  });
+  view.score = state.score;
+  view.moves = state.moves;
+  view.got = state.got.slice();
+  view.jellyLeft = state.jellyLeft;
+  updateAllJelly();
+  renderedMoves = -1;
+  renderHUD();
+}
+function rebuildDrop() {
+  pieceLayer.innerHTML = '';
+  pieceEls = new Map();
+  fx.innerHTML = '';
+  measure();
+  const items = [];
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const p = state.board[r][c];
+      if (!p) continue;
+      const fromR = r - 10;
+      const el = spawn(p, fromR, c);
+      items.push({ el: el, r: r, c: c, fromR: fromR, delay: (r + c) * 18 });
+    }
+  }
+  return frame().then(function () { return frame(); }).then(function () {
+    let maxWait = 0;
+    for (let i = 0; i < items.length; i++) {
+      const it = items[i];
+      const dist = it.r - it.fromR;
+      const ms = T(160 + dist * 26);
+      moveEl(it.el, it.r, it.c, true, dist, T(it.delay), ms);
+      maxWait = Math.max(maxWait, ms + T(it.delay));
+    }
+    return wait(maxWait + 30);
+  });
+}
+function commitDragOffsets() {
+  pieceEls.forEach(function (el) {
+    const dx = parseFloat(el.style.getPropertyValue('--dx')) || 0;
+    const dy = parseFloat(el.style.getPropertyValue('--dy')) || 0;
+    if (!dx && !dy) return;
+    const x = (parseFloat(el.style.getPropertyValue('--x')) || 0) + dx;
+    const y = (parseFloat(el.style.getPropertyValue('--y')) || 0) + dy;
+    el.style.setProperty('--dur', '0ms');
+    el.style.setProperty('--dx', '0px');
+    el.style.setProperty('--dy', '0px');
+    el.style.setProperty('--x', x + 'px');
+    el.style.setProperty('--y', y + 'px');
+    el.style.zIndex = '';
+    el.classList.remove('press');
+  });
+}
+function springBack() {
+  pieceEls.forEach(function (el) {
+    el.style.setProperty('--dur', T(140) + 'ms');
+    el.style.setProperty('--dx', '0px');
+    el.style.setProperty('--dy', '0px');
+    el.style.zIndex = '';
+    el.classList.remove('press');
+  });
+}
+async function animSwap(res, revert) {
+  commitDragOffsets();
+  await frame();
+  const e1 = pieceEls.get(res.id1);
+  const e2 = pieceEls.get(res.id2);
+  moveEl(e1, res.r2, res.c2, true, 1, 0, T(160));
+  moveEl(e2, res.r1, res.c1, true, 1, 0, T(160));
+  await wait(T(170));
+  if (!revert) return;
+  moveEl(e1, res.r1, res.c1, true, 1, 0, T(150));
+  moveEl(e2, res.r2, res.c2, true, 1, 0, T(150));
+  if (e1) e1.classList.add('deny');
+  if (e2) e2.classList.add('deny');
+  await wait(T(180));
+  if (e1) e1.classList.remove('deny');
+  if (e2) e2.classList.remove('deny');
+}
+function saveProgress(stars) {
+  if (stars > (save.stars[levelIndex] || 0)) save.stars[levelIndex] = stars;
+  if (state.score > (save.best[levelIndex] || 0)) save.best[levelIndex] = state.score;
+  save.unlocked = Math.min(LEVELS.length, Math.max(save.unlocked, levelIndex + 2));
+  save.coach = true;
+  persist();
+}
+function remainText() {
+  const g = state.goal;
+  if (g.kind === 'score') return '还差 ' + Math.max(0, g.score - state.score) + ' 分';
+  if (g.kind === 'jelly') return '还剩 ' + state.jellyLeft + ' 块果冻';
+  const parts = [];
+  for (let i = 0; i < g.items.length; i++) {
+    const left = g.items[i].n - (state.got[g.items[i].t] || 0);
+    if (left > 0) parts.push(NAMES[g.items[i].t] + '还差 ' + left);
+  }
+  return parts.join('，');
+}
+function closeModal() {
+  modal.hidden = true;
+  modalOpen = false;
+  modalKind = '';
+}
+function openHelp() {
+  modalKind = 'help';
+  modalOpen = true;
+  modal.hidden = false;
+  modalCard.innerHTML =
+    '<h2>怎么玩</h2>' +
+    '<div class="help">' +
+    '<div class="help-row"><div class="mini">' + svgCandy(0, null) + '</div><div>点一下选中，再点相邻的水果；也可以直接拖过去。<b>对不齐就弹回来，不扣步数。</b></div></div>' +
+    '<div class="help-row"><div class="mini">' + svgCandy(3, null) + '</div><div>三个及以上相同水果横竖连成一线，就会消除并下落。</div></div>' +
+    '<div class="help-row"><div class="mini">' + svgCandy(1, 'h') + '</div><div><b>四个</b>连成一线变成条纹糖。横着的消除整行，竖着的消除整列。</div></div>' +
+    '<div class="help-row"><div class="mini">' + svgCandy(2, 'wrap') + '</div><div><b>L 形或 T 形</b>变成包装糖，炸开周围一圈。</div></div>' +
+    '<div class="help-row"><div class="mini">' + svgCandy(-1, 'bomb') + '</div><div><b>五个</b>连成一线变成彩虹糖，和任意水果交换，消除那种颜色。</div></div>' +
+    '<div>两个特殊水果互换会触发更强的组合。步数用完前达成目标即可过关，剩下的步数会变成奖励。</div>' +
+    '</div>' +
+    '<div class="modal-actions"><button type="button" data-act="close">知道了</button></div>';
+}
+function confetti() {
+  for (let i = 0; i < 42; i++) {
+    const el = document.createElement('i');
+    el.className = 'confetti';
+    el.style.left = Math.random() * 100 + '%';
+    el.style.background = COLORS[i % COLORS.length];
+    el.style.animationDelay = (Math.random() * 0.25) + 's';
+    el.style.setProperty('--rot', (Math.random() * 200 - 40) + 'deg');
+    document.body.appendChild(el);
+    setTimeout(function () { el.remove(); }, 1500);
+  }
+}
+function showWin(stars) {
+  modalKind = 'win';
+  modalOpen = true;
+  modal.hidden = false;
+  const title = stars >= 3 ? '完美消除！' : stars === 2 ? '真甜！' : '过关啦';
+  const next = levelIndex < LEVELS.length - 1;
+  modalCard.innerHTML =
+    '<h2>' + title + '</h2>' +
+    '<div class="star-row">' + [0, 1, 2].map(function (i) {
+      return starSVG(i < stars).replace('<svg ', '<svg style="animation-delay:' + (i * 0.12) + 's" ');
+    }).join('') + '</div>' +
+    '<p>得分 <b>' + state.score + '</b></p>' +
+    '<p>最佳 ' + (save.best[levelIndex] || state.score) + ' · ' + goalLabel(LEVELS[levelIndex]) + '</p>' +
+    '<p>二星 ' + LEVELS[levelIndex].stars[1] + ' 分 · 三星 ' + LEVELS[levelIndex].stars[2] + ' 分</p>' +
+    '<div class="modal-actions">' +
+    (next ? '<button type="button" class="btn-primary" data-act="next" style="box-shadow:0 4px 0 #e8590c">下一关</button>' : '') +
+    '<button type="button" data-act="retry">再来一局</button>' +
+    '<button type="button" data-act="map">选关</button></div>';
+  confetti();
+  soundWin();
+}
+function showLose() {
+  modalKind = 'lose';
+  modalOpen = true;
+  modal.hidden = false;
+  modalCard.innerHTML =
+    '<h2>差一点点</h2>' +
+    '<p>' + remainText() + '</p>' +
+    '<p>本次得分 ' + state.score + '</p>' +
+    '<div class="modal-actions"><button type="button" class="btn-primary" data-act="retry" style="box-shadow:0 4px 0 #e8590c">再试一次</button><button type="button" data-act="map">选关</button></div>';
+  soundLose();
+}
+async function startLevel(index) {
+  if (busy) return;
+  if (index < 0 || index >= LEVELS.length || index >= save.unlocked) return;
+  busy = true;
+  closeModal();
+  try {
+    levelIndex = index;
+    state = newGame(LEVELS[index]);
+    view = takeView();
+    renderedMoves = -1;
+    clearSel();
+    showGameScreen();
+    buildGrid();
+    measure();
+    renderHUD();
+    await rebuildDrop();
+    if (findGroups(state.board).length) {
+      const waves = collapseAll(state, 1, []);
+      await playWaves(waves);
+    }
+    if (!goalMet(state) && state.moves > 0 && !findAllHints(state.board).length) {
+      doShuffle(state);
+      await rebuildDrop();
+    }
+    syncToState();
+    toast('第 ' + (index + 1) + ' 关 · ' + goalLabel(LEVELS[index]));
+    if (index === 0 && !save.coach) flashHint();
+  } finally {
+    busy = false;
+  }
+}
+async function userSwap(r1, c1, r2, c2) {
+  if (busy || modalOpen) return;
+  if (!inside(r2, c2)) { springBack(); return; }
+  busy = true;
+  clearHint();
+  clearSel();
+  try {
+    const result = tryMove(state, r1, c1, r2, c2);
+    if (!result.ok) {
+      springBack();
+      if (result.revert) {
+        soundBad();
+        await animSwap(result, true);
+      }
+      return;
+    }
+    if (levelIndex === 0 && !save.coach) { save.coach = true; persist(); }
+    blip(540, 0.06, 'sine', 0.035);
+    view.moves = result.movesLeft;
+    renderHUD();
+    await animSwap(result, false);
+    await playWaves(result.waves);
+    if (result.needShuffle) {
+      doShuffle(state);
+      toast('没有可消除的组合，已重新洗牌');
+      await rebuildDrop();
+    }
+    syncToState();
+    if (result.won) {
+      if (state.moves > 0) {
+        toast('目标达成！剩下的步数变成奖励');
+        await wait(T(650));
+        const bonus = simBonus(state);
+        await playWaves(bonus, { fast: true });
+        syncToState();
+      } else toast('目标达成！');
+      const stars = calcStars(state);
+      saveProgress(stars);
+      showWin(stars);
+    } else if (result.lost) {
+      showLose();
+    }
+  } finally {
+    busy = false;
+  }
+}
+function cellAt(clientX, clientY) {
+  const rect = gridEl.getBoundingClientRect();
+  const x = clientX - rect.left;
+  const y = clientY - rect.top;
+  const step = S + G;
+  if (step <= 0) return null;
+  const c = Math.floor(x / step);
+  const r = Math.floor(y / step);
+  if (!inside(r, c)) return null;
+  return { r: r, c: c };
+}
+function onDown(e) {
+  if (busy || modalOpen || viewGame.hidden) return;
+  if (e.button != null && e.button !== 0) return;
+  unlockAudio();
+  const cell = cellAt(e.clientX, e.clientY);
+  if (!cell || !state.board[cell.r][cell.c]) return;
+  try { boardInner.setPointerCapture(e.pointerId); } catch (err) {}
+  drag = { pid: e.pointerId, r: cell.r, c: cell.c, x: e.clientX, y: e.clientY, moved: false, nel: null };
+  const el = elAt(cell.r, cell.c);
+  if (el) el.classList.add('press');
+}
+function onMove(e) {
+  if (!drag || e.pointerId !== drag.pid || busy) return;
+  const dx = e.clientX - drag.x;
+  const dy = e.clientY - drag.y;
+  if (!drag.moved && Math.hypot(dx, dy) < 8) return;
+  drag.moved = true;
+  let mx = 0;
+  let my = 0;
+  if (Math.abs(dx) > Math.abs(dy)) mx = Math.max(-S, Math.min(S, dx));
+  else my = Math.max(-S, Math.min(S, dy));
+  const el = elAt(drag.r, drag.c);
+  if (!el) return;
+  el.style.setProperty('--dur', '0ms');
+  el.style.setProperty('--dx', mx + 'px');
+  el.style.setProperty('--dy', my + 'px');
+  el.style.zIndex = '6';
+  const nr = drag.r + (my > 10 ? 1 : my < -10 ? -1 : 0);
+  const nc = drag.c + (mx > 10 ? 1 : mx < -10 ? -1 : 0);
+  const nel = (nr !== drag.r || nc !== drag.c) ? elAt(nr, nc) : null;
+  if (drag.nel && drag.nel !== nel) {
+    drag.nel.style.setProperty('--dx', '0px');
+    drag.nel.style.setProperty('--dy', '0px');
+  }
+  drag.nel = nel;
+  if (nel) {
+    nel.style.setProperty('--dur', '0ms');
+    nel.style.setProperty('--dx', (-mx * 0.22) + 'px');
+    nel.style.setProperty('--dy', (-my * 0.22) + 'px');
+  }
+}
+function onUp(e) {
+  if (!drag || e.pointerId !== drag.pid) return;
+  const d = drag;
+  drag = null;
+  const el = elAt(d.r, d.c);
+  if (el) el.classList.remove('press');
+  const dx = e.clientX - d.x;
+  const dy = e.clientY - d.y;
+  let tr = d.r;
+  let tc = d.c;
+  const dragged = d.moved && (Math.abs(dx) > S * 0.34 || Math.abs(dy) > S * 0.34);
+  if (dragged) {
+    if (Math.abs(dx) > Math.abs(dy)) tc += dx > 0 ? 1 : -1;
+    else tr += dy > 0 ? 1 : -1;
+    userSwap(d.r, d.c, tr, tc);
+    return;
+  }
+  springBack();
+  if (d.moved) return;
+  if (!state.board[d.r][d.c]) return;
+  if (selected && selected.r === d.r && selected.c === d.c) { clearSel(); return; }
+  if (selected && Math.abs(selected.r - d.r) + Math.abs(selected.c - d.c) === 1) {
+    const s = selected;
+    clearSel();
+    userSwap(s.r, s.c, d.r, d.c);
+    return;
+  }
+  select(d.r, d.c);
+}
+function bind() {
+  boardInner.addEventListener('pointerdown', onDown);
+  boardInner.addEventListener('pointermove', onMove);
+  boardInner.addEventListener('pointerup', onUp);
+  boardInner.addEventListener('pointercancel', function (e) {
+    if (!drag || e.pointerId !== drag.pid) return;
+    drag = null;
+    springBack();
+  });
+  boardInner.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+  backBtn.addEventListener('click', function () {
+    if (busy) return;
+    if (backBtn.dataset.mode === 'help') openHelp();
+    else { closeModal(); showMap(); }
+  });
+  soundBtn.addEventListener('click', function () {
+    unlockAudio();
+    save.sound = !save.sound;
+    persist();
+    renderSound();
+    if (save.sound) blip(660, 0.08, 'sine', 0.04);
+  });
+  continueBtn.addEventListener('click', function () { startLevel(continueIndex()); });
+  document.getElementById('btn-hint').addEventListener('click', function () {
+    if (busy || modalOpen) return;
+    unlockAudio();
+    flashHint();
+  });
+  document.getElementById('btn-restart').addEventListener('click', function () {
+    if (busy || modalOpen) return;
+    startLevel(levelIndex);
+  });
+  document.getElementById('btn-help').addEventListener('click', function () {
+    if (busy) return;
+    openHelp();
+  });
+  modal.addEventListener('click', function (e) {
+    const node = e.target.closest('[data-act]');
+    if (!node) return;
+    const act = node.dataset.act;
+    if (act === 'back') {
+      if (modalKind === 'help') closeModal();
+      return;
+    }
+    if (act === 'close') { closeModal(); return; }
+    if (act === 'map') { closeModal(); showMap(); return; }
+    if (act === 'retry') { closeModal(); startLevel(levelIndex); return; }
+    if (act === 'next') { closeModal(); startLevel(levelIndex + 1); }
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && modalOpen && modalKind === 'help') { closeModal(); return; }
+    if (modalOpen || busy || viewGame.hidden || !selected) return;
+    const dir = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] }[e.key];
+    if (!dir) return;
+    const r = selected.r + dir[0];
+    const c = selected.c + dir[1];
+    if (!inside(r, c)) return;
+    e.preventDefault();
+    const s = selected;
+    clearSel();
+    userSwap(s.r, s.c, r, c);
+  });
+  window.addEventListener('resize', function () {
+    if (viewGame.hidden || !state) return;
+    measure();
+    if (busy) return;
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        const p = state.board[r][c];
+        if (p) moveEl(pieceEls.get(p.id), r, c, false, 0);
+      }
+    }
+  });
+}
+
+renderSound();
+renderHero();
+bind();
+showMap();
+</script>
+</body>
+</html>
